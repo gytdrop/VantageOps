@@ -350,7 +350,7 @@ class SaleOrder(models.Model):
         ranked = [w for w in self._vantage_ranked_warehouses() if w != self.warehouse_id]
         return ranked[0] if ranked else False
 
-    @api.depends('order_line.product_uom_qty', 'order_line.product_id', 'warehouse_id')
+    @api.depends('order_line.product_uom_qty', 'order_line.product_id', 'order_line.requires_split', 'warehouse_id')
     def _compute_split_requirement(self):
         """Check available free stock vs requested qty"""
         for order in self:
@@ -777,7 +777,7 @@ class SaleOrderLine(models.Model):
             else:
                 line.deficit_qty = 0.0
 
-    @api.depends('price_subtotal', 'product_id', 'product_uom_qty')
+    @api.depends('price_subtotal', 'product_id', 'product_id.standard_price', 'product_uom_qty')
     def _compute_margin_delta(self):
         for line in self:
             cost = line.product_id.standard_price * line.product_uom_qty if line.product_id else 0.0
@@ -794,7 +794,7 @@ class SaleOrderOption(models.Model):
         help="Net profit contribution of this optional product."
     )
 
-    @api.depends('price_unit', 'product_id', 'quantity', 'discount')
+    @api.depends('price_unit', 'product_id', 'product_id.standard_price', 'quantity', 'discount')
     def _compute_margin_delta(self):
         for option in self:
             cost = option.product_id.standard_price * option.quantity if option.product_id else 0.0

@@ -24,7 +24,7 @@ class SaleOrder(models.Model):
         help="Flag indicating mixed one-time products and recurring subscription lines."
     )
 
-    @api.depends('order_line.discount', 'order_line.price_subtotal', 'order_line.product_uom_qty')
+    @api.depends('order_line.discount', 'order_line.price_subtotal', 'order_line.product_uom_qty', 'order_line.price_unit')
     def _compute_vantage_risk(self):
         """Baseline risk model used when the governance layer is not installed.
 
@@ -61,7 +61,7 @@ class SaleOrder(models.Model):
                 else:
                     order.risk_approval_state = 'draft'
 
-    @api.depends('order_line.product_id')
+    @api.depends('order_line.product_id', 'order_line.is_subscription_item')
     def _compute_is_recurring_hybrid(self):
         for order in self:
             has_subscription = any(line.is_subscription_item for line in order.order_line)

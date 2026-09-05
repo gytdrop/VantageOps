@@ -45,7 +45,7 @@
             </xpath>
 
             <!-- Governance Notebook Page -->
-            <xpath expr="//notebook" position="inside">
+            <xpath expr="//page[@name='order_lines']" position="after">
                 <page name="page_akthar_approvals" string="Risk &amp; Approvals">
                     <div class="alert alert-secondary" role="status">
                         <strong>📐 Applied Policy:</strong> <field name="governance_policy_summary" readonly="1" nolabel="1"/>

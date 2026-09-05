@@ -4,7 +4,7 @@
     'category': 'Sales/Sales',
     'summary': 'Configurable Discount Tiers, Approval Routing, Chatter Escalations & Portal Negotiation',
     'author': 'gytdrop',
-    'depends': ['vantage_core', 'portal', 'mail', 'vantage_fulfillment'],
+    'depends': ['vantage_core', 'portal', 'mail', 'vantage_fulfillment', 'sales_team'],
     'data': [
         'security/ir.model.access.csv',
         'data/discount_tier_data.xml',

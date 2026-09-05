@@ -48,7 +48,7 @@
 
 
             <!-- Fulfillment Notebook Pages -->
-            <xpath expr="//notebook" position="inside">
+            <xpath expr="//page[@name='order_lines']" position="after">
                 <page name="page_ashrith_fulfillment" string="Fulfillment &amp; Warehouses">
                     <div class="alert alert-info" role="status">
                         <field name="fulfillment_split_summary" readonly="1"/>

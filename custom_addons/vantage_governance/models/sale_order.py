@@ -124,9 +124,11 @@ class SaleOrder(models.Model):
     # Risk engine
     # ------------------------------------------------------------------
     @api.depends('order_line.discount', 'order_line.price_unit', 'order_line.product_uom_qty',
-                 'order_line.product_id', 'partner_id.customer_tier_id',
+                 'order_line.product_id', 'order_line.product_id.categ_id',
+                 'partner_id.customer_tier_id',
                  'partner_id.customer_tier_id.discount_ceiling',
-                 'partner_id.customer_tier_id.category_ceiling_ids.discount_ceiling')
+                 'partner_id.customer_tier_id.category_ceiling_ids.discount_ceiling',
+                 'partner_id.customer_tier_id.category_ceiling_ids.product_category_id')
     def _compute_vantage_risk(self):
         """Blended Risk Matrix driven by the configurable tier policy.
 
