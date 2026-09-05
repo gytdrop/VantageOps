@@ -1,45 +1,66 @@
-# 🌐 VantageOps (Development Canvas: `mockdeal`)
-**Engineered by gytdrop**  
-*The autonomous B2B revenue and margin governance engine for Odoo.*
+# VantageOps
+
+**Enterprise Commercial Governance & Operational Fulfillment Engine for Odoo 18**
+
+VantageOps is an integrated, modular Odoo 18 application suite engineered to protect enterprise gross margins, automate multi-tiered approval workflows, optimize multi-warehouse order fulfillment, and streamline customer portal negotiations.
 
 ---
 
-> [!CAUTION]
-> ### 🛑 ABSOLUTE GUARDRAIL FOR ALL AGENTS (ANTIGRAVITY, CLAUDE, ETC.)
-> 1. **DO NOT STAGE OR COMMIT IN `VantageOps`**: This current workspace (`mockdeal`) is our **active development canvas**. All coding, testing, debugging, and git commits MUST happen strictly inside `mockdeal`.
-> 2. **`VantageOps` IS THE FINAL RELEASE DESTINATION**: Code is ONLY promoted and copied to `VantageOps` when a feature is 100% complete, fully working, and verified. No agent is ever permitted to run git stage or commit commands directly inside the `VantageOps` directory.
-> 3. **MANDATORY LOGGING PROTOCOL**:
->    - **Antigravity** MUST log every commit and milestone into [`antigravity.log`](antigravity.log).
->    - **Claude** MUST log every commit and milestone into [`claude.log`](claude.log).
->    - **ALL AGENTS** MUST log every completed period/commit into [`workonmyperiod.log`](workonmyperiod.log).
->    - If the user says **"write log"**, the active agent must immediately append a detailed progress entry to its respective agent log and `workonmyperiod.log`.
+## 🏗️ Architecture & Module Suite
+
+VantageOps extends native Odoo models (`sale.order`, `sale.order.line`, `stock.picking`, and `portal`) cleanly without altering core code:
+
+```
+custom_addons/
+├── vantage_core/          # Shared foundation: Risk scoring, state machines & contract typing
+├── vantage_governance/    # Margin governance, chatter escalations & portal negotiation
+└── vantage_fulfillment/   # Multi-warehouse auto-split routing & live upsell engine
+```
+
+### 1. `vantage_core` (Base Foundation)
+* **Blended Risk Scoring**: Real-time evaluation of quotation risk factors (discount depth, credit limits, and margin variance).
+* **Approval State Machine**: State transitions managing standard draft orders, required internal approvals, and authorized states.
+* **Hybrid Contract Awareness**: Differentiates between one-off hardware/product sales and recurring service agreements.
+
+### 2. `vantage_governance` (Commercial Control)
+* **Margin Floor Enforcement**: Prohibits confirmation (`action_confirm`) of quotations falling below approved gross margin thresholds.
+* **Chatter Escalations**: Automatically dispatches `mail.activity` escalations with contextual metadata directly to finance/sales managers.
+* **Portal Counter-Offer Interface**: Secure, tokenized customer negotiation interface enabling customers to submit counter-proposals within defined guardrails.
+* **Circuit Breaker Logic**: Bounds portal counter-offer iterations to prevent infinite negotiation loops.
+
+### 3. `vantage_fulfillment` (Operational Execution)
+* **Multi-Warehouse Stock Splitting**: Automatically detects warehouse inventory availability across locations and splits fulfillments into dedicated warehouse pickings (`stock.picking`).
+* **Backorder Routing**: Segregates immediately fulfillable lines from backordered items to optimize delivery SLAs.
+* **Live Margin Delta Upsell**: Calculates and displays margin impacts for optional/accessory products directly within quotation views.
 
 ---
 
-## Executive Summary
-VantageOps provides enterprise sales teams with the strategic high ground—delivering **Total Panoramic Visibility** to eliminate margin bleed, automate complex multi-warehouse fulfillment, and govern B2B deal negotiation in real time without human bottlenecks.
+## 🚀 Installation & Setup
 
-## Core Capabilities
-* **Dynamic Margin Governance:** Replaces static discount rules with a live Blended Risk Score. High-risk line items aggregate into an order-wide penalty, automatically halting confirmation and routing deals to the "Approvals" dashboard.
-* **Agentic Portal Negotiation:** Replaces offline haggling with a governed Customer Portal. Buyers propose counter-offers line-by-line; VantageOps intercepts, recalculates risk, and strictly limits negotiation rounds via automated circuit breakers.
-* **Multi-Warehouse Execution:** Scans line items against regional warehouse stock. Automatically splits lines and generates secondary fulfillment pickings for backordered inventory, manageable directly from the "Fulfillment" module.
-* **Hybrid Subscription Billing:** Natively supports both consumable hardware and recurring subscriptions on a single quotation canvas, routing properly to standard and subscription billing schedules.
+### Prerequisites
+* Odoo 18.0 Community or Enterprise
+* Standard Odoo dependencies: `sale_management`, `stock`, `portal`, `mail`
 
-## Technical Architecture
-Built as a native Odoo integration suite extending `sale_management`, `stock`, `sale_stock`, and `portal`. It leverages Odoo's native ORM and `mail.activity` chatter to ensure zero database bloat and instant deployment readiness under 400 lines of Python.
+### Installation
+1. Clone this repository into your Odoo project or add `custom_addons/` to your `odoo.conf`:
+   ```ini
+   addons_path = /path/to/odoo/addons,/path/to/VantageOps/custom_addons
+   ```
+2. Restart your Odoo server with app list update:
+   ```bash
+   ./odoo-bin -c odoo.conf -u vantage_core,vantage_governance,vantage_fulfillment -d <database_name>
+   ```
+3. Navigate to **Apps**, search for **VantageOps**, and activate the modules.
 
-## Module Structure (`custom_addons/`)
-- `vantage_core`: Shared foundation extending `sale.order` and `sale.order.line` with blended risk scoring and hybrid tags.
-- `vantage_governance`: Akthar's module for approval routing, chatter escalations, and portal negotiation.
-- `vantage_fulfillment`: Ashrith's module for multi-warehouse auto-splitting and live upsell margin contributions.
+---
 
-## Repositories & Resources
-- **Active Canvas & Prototyping (`mockdeal`):** `https://github.com/gytdrop/mockdeal.git`
-- **Final Release Destination (`VantageOps`):** `https://github.com/gytdrop/VantageOps.git` *(FROZEN TO AGENTS)*
-- [Execution Blueprint](EXECUTION_PLAN.md)
-- [Vision & Architecture](VISION.md)
-- [Interface Contract](CONTRACT.md)
-- [Agent Governance & Zero-Conflict Protocol](AGENTS.md)
-- [Antigravity Activity Log](antigravity.log)
-- [Claude Activity Log](claude.log)
-- [Global Work Session Log](workonmyperiod.log)
+## 🔒 Security & Code Standards
+
+* **Native Model Inheritance**: Built exclusively with `_inherit` on native models to guarantee standard upgrade paths and database compatibility.
+* **Safe Portal Controllers**: Counter-offers validate signature tokens, record access rules, and enforce negotiation limits.
+* **High-Performance Computes**: Zero redundant database queries; relies on cached computed fields and bulk write operations.
+
+---
+
+## 📄 License
+This project is licensed under the [LGPL-3](https://www.gnu.org/licenses/lgpl-3.0.en.html) license.

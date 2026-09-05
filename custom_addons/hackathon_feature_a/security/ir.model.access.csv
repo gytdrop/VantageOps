@@ -1,4 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_dealflow_discount_tier,access_dealflow_discount_tier,model_dealflow_discount_tier,base.group_user,1,1,1,1
-access_dealflow_approval_log,access_dealflow_approval_log,model_dealflow_approval_log,base.group_user,1,1,1,1
-access_dealflow_deal_health,access_dealflow_deal_health,model_dealflow_deal_health,base.group_user,1,1,1,1
