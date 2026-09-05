@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_order_form_inherit_vantage_fulfillment" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.vantage.fulfillment</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Header Split Action Button -->
+            <xpath expr="//header" position="inside">
+                <button name="action_split_fulfillments" string="Auto-Split Warehouses" type="object" class="btn-secondary"
+                        invisible="has_split_requirement == False or state not in ('draft', 'sent')"/>
+            </xpath>
+
+            <!-- Sheet Header Alert for Deficits -->
+            <xpath expr="//header" position="after">
+                <div class="alert alert-warning mb-0 text-center" role="alert" 
+                     invisible="has_split_requirement == False">
+                    <strong>📦 Inventory Deficit Detected:</strong> Primary warehouse stock is insufficient. Click 
+                    <strong>"Auto-Split Warehouses"</strong> to allocate across regional depots.
+                </div>
+            </xpath>
+
+            <!-- Line tree view extension: Margin Delta & Warehouse -->
+            <xpath expr="//field[@name='order_line']/tree/field[@name='price_subtotal']" position="after">
+                <field name="margin_delta" string="Margin ($)" optional="show"/>
+                <field name="free_qty_today" string="Free Stock" optional="show"/>
+                <field name="requires_split" optional="hide"/>
+                <field name="fulfillment_warehouse_id" optional="show"/>
+            </xpath>
+
+            <!-- Fulfillment Notebook Page -->
+            <xpath expr="//notebook" position="inside">
+                <page name="page_ashrith_fulfillment" string="Fulfillment &amp; Warehouses">
+                    <group>
+                        <group string="Warehouse Allocation Settings">
+                            <field name="has_split_requirement" readonly="1"/>
+                            <field name="secondary_warehouse_id"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

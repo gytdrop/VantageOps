@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Task 2: Inherit portal order view to add counter-offer interface -->
+    <template id="sale_order_portal_content_inherit_vantage" inherit_id="sale.sale_order_portal_content">
+        <xpath expr="//section[@id='details']" position="before">
+            <div class="card mb-4 border-warning shadow-sm" t-if="sale_order.state in ('draft', 'sent') and not sale_order.is_negotiation_locked">
+                <div class="card-header bg-warning text-dark font-weight-bold">
+                    🤝 Deal Negotiation Portal (Round <t t-esc="sale_order.negotiation_rounds + 1"/> of <t t-esc="sale_order.max_negotiation_rounds"/>)
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        Request a counter discount directly on this quotation. Our algorithmic governance node will evaluate the proposal in real time.
+                    </p>
+                    <form t-attf-action="/my/orders/#{sale_order.id}/counter_offer" method="post" class="form-inline">
+                        <input type="hidden" name="access_token" t-att-value="sale_order.access_token"/>
+                        <div class="input-group mr-2 mb-2">
+                            <span class="input-group-text">Proposed Counter Discount (%)</span>
+                            <input type="number" step="0.5" min="0" max="50" name="counter_discount" class="form-control" placeholder="e.g. 12.5" required="required"/>
+                        </div>
+                        <div class="input-group mr-2 mb-2 flex-grow-1">
+                            <input type="text" name="notes" class="form-control" placeholder="Optional comments or concession offer..."/>
+                        </div>
+                        <button type="submit" class="btn btn-warning mb-2">Submit Counter-Offer</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="alert alert-secondary mb-4" t-if="sale_order.is_negotiation_locked and sale_order.state in ('draft', 'sent')">
+                🔒 <strong>Negotiation Locked:</strong> Maximum permitted negotiation rounds (<t t-esc="sale_order.max_negotiation_rounds"/>) have been reached. Terms are locked for final decision.
+            </div>
+        </xpath>
+    </template>
+</odoo>

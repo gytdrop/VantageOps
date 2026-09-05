@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hackathon_item_form_inherit_b" model="ir.ui.view">
+        <field name="name">hackathon.item.form.inherit.b</field>
+        <field name="model">hackathon.item</field>
+        <field name="inherit_id" ref="hackathon_core.view_hackathon_item_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <header>
+                    <button name="action_run_analysis" string="Run AI Analysis" type="object" class="btn-primary"/>
+                </header>
+            </xpath>
+            <xpath expr="//group" position="after">
+                <group string="AI Insights">
+                    <field name="ai_summary"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

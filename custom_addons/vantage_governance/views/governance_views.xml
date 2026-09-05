@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_order_form_inherit_vantage_governance" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.vantage.governance</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Manager Approval / Rejection Buttons in Header -->
+            <xpath expr="//header" position="inside">
+                <button name="action_manager_approve" string="Director Approve" type="object" class="btn-success"
+                        invisible="risk_approval_state != 'pending_approval'"/>
+                <button name="action_manager_reject" string="Reject Deal" type="object" class="btn-danger"
+                        invisible="risk_approval_state != 'pending_approval'"/>
+            </xpath>
+
+            <!-- Governance Notebook Page -->
+            <xpath expr="//notebook" position="inside">
+                <page name="page_akthar_approvals" string="Risk &amp; Approvals">
+                    <group>
+                        <group string="Commercial Governance">
+                            <field name="blended_risk_score" readonly="1"/>
+                            <field name="risk_approval_state" readonly="1"/>
+                            <field name="negotiation_rounds" readonly="1"/>
+                            <field name="max_negotiation_rounds"/>
+                            <field name="is_negotiation_locked" readonly="1"/>
+                        </group>
+                        <group string="Customer Negotiation Activity">
+                            <field name="last_counter_offer" readonly="1"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
