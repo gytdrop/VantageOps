@@ -9,6 +9,8 @@
             <xpath expr="//header" position="inside">
                 <button name="action_split_fulfillments" string="Auto-Split Warehouses" type="object" class="btn-secondary"
                         invisible="has_split_requirement == False or state not in ('draft', 'sent')"/>
+                <button name="action_consolidate_backorders" string="Consolidate Backorders" type="object" class="btn-secondary"
+                        invisible="has_split_children == False or state not in ('draft', 'sent')"/>
                 <button name="action_generate_billing_schedule" string="Generate Billing Schedule" type="object" class="btn-secondary"
                         invisible="state not in ('draft', 'sent')"/>
             </xpath>
@@ -19,6 +21,11 @@
                      invisible="has_split_requirement == False">
                     <strong>📦 Inventory Deficit Detected:</strong> Primary warehouse stock is insufficient. Click 
                     <strong>"Auto-Split Warehouses"</strong> to allocate across regional depots.
+                </div>
+                <div class="alert alert-info mb-0 text-center" role="alert" 
+                     invisible="has_split_children == False">
+                    <strong>🚚 Split Fulfillment Active:</strong> Quotation lines are distributed across multiple warehouses. Click 
+                    <strong>"Consolidate Backorders"</strong> if inventory has arrived at the primary depot.
                 </div>
             </xpath>
 
@@ -35,12 +42,27 @@
             <!-- Fulfillment Notebook Pages -->
             <xpath expr="//notebook" position="inside">
                 <page name="page_ashrith_fulfillment" string="Fulfillment &amp; Warehouses">
+                    <div class="alert alert-info" role="status">
+                        <field name="fulfillment_split_summary" readonly="1"/>
+                    </div>
                     <group>
-                        <group string="Warehouse Allocation Settings">
+                        <group string="Multi-Warehouse Cost Weighting &amp; Routing">
                             <field name="has_split_requirement" readonly="1"/>
-                            <field name="secondary_warehouse_id"/>
+                            <field name="has_split_children" readonly="1"/>
+                            <field name="secondary_warehouse_id" options="{'no_create': True}"/>
+                        </group>
+                        <group string="Logistics &amp; Shipping Metrics">
+                            <field name="estimated_shipment_count" readonly="1"/>
+                            <field name="estimated_shipping_cost" widget="monetary" readonly="1"/>
+                            <field name="currency_id" invisible="1"/>
                         </group>
                     </group>
+                    <div class="mt-2">
+                        <button name="action_split_fulfillments" string="Accept Suggested Split" type="object" class="btn btn-primary me-2"
+                                invisible="has_split_requirement == False or state not in ('draft', 'sent')"/>
+                        <button name="action_consolidate_backorders" string="Consolidate Remaining Backorders" type="object" class="btn btn-outline-secondary"
+                                invisible="has_split_children == False or state not in ('draft', 'sent')"/>
+                    </div>
                 </page>
                 <page name="page_billing_schedule" string="Hybrid Billing Schedule">
                     <div class="alert alert-info" role="status" invisible="billing_schedule_count &gt; 0">
@@ -81,13 +103,7 @@
             <xpath expr="//field[@name='sale_order_option_ids']/tree/field[@name='price_unit']" position="after">
                 <field name="margin_delta" string="Margin ($)" optional="show" widget="monetary"/>
             </xpath>
-
-            <!-- Optional Products View Extension -->
-            <xpath expr="//field[@name='sale_order_option_ids']/tree/field[@name='price_unit']" position="after">
-                <field name="margin_delta" string="Margin ($)" optional="show" widget="monetary"/>
-            </xpath>
         </field>
-
     </record>
 
     <!-- Smart Upsell Rules View & Menu -->
@@ -112,6 +128,24 @@
         <field name="view_mode">tree,form</field>
     </record>
 
+    <!-- Stock Warehouse Form View Extension: Shipping Cost Weighting -->
+    <record id="view_warehouse_inherit_vantage_fulfillment" model="ir.ui.view">
+        <field name="name">stock.warehouse.inherit.vantage.fulfillment</field>
+        <field name="model">stock.warehouse</field>
+        <field name="inherit_id" ref="stock.view_warehouse"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="VantageOps Logistics" name="page_vantage_logistics">
+                    <group>
+                        <group string="Cost Weighting (DealFlow360)">
+                            <field name="base_shipping_cost"/>
+                            <field name="shipping_cost_weight"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
     <menuitem id="menu_vantage_upsell_rules"
               name="Upsell Rules"
               parent="sale.product_menu_catalog"

@@ -1,5 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_hackathon_item,access_hackathon_item,model_hackathon_item,base.group_user,1,1,1,1
-access_dealflow_product,access_dealflow_product,model_dealflow_product,base.group_user,1,1,1,1
-access_dealflow_quote,access_dealflow_quote,model_dealflow_quote,base.group_user,1,1,1,1
-access_dealflow_quote_line,access_dealflow_quote_line,model_dealflow_quote_line,base.group_user,1,1,1,1

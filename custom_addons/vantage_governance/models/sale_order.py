@@ -34,6 +34,12 @@ class SaleOrder(models.Model):
         store=True
     )
     last_counter_offer = fields.Char(string='Last Counter-Offer Details', readonly=True)
+    partner_customer_tier = fields.Selection(
+        related='partner_id.customer_tier',
+        readonly=False,
+        string='Customer Tier',
+        help="Determines the permissible baseline discount ceiling before triggering approval workflows."
+    )
 
     # --- Deal Health & Anomaly Engine ---
     deal_health = fields.Selection([
@@ -52,28 +58,35 @@ class SaleOrder(models.Model):
 
     @api.depends('order_line.discount', 'order_line.price_subtotal', 'order_line.product_uom_qty', 'partner_id.customer_tier')
     def _compute_vantage_risk(self):
-        """Dynamic Blended Risk Matrix factoring Customer Tiers (Bronze: 5%, Silver: 10%, Gold: 15%)"""
+        """Dynamic Blended Risk Matrix factoring Customer Tiers (Bronze: 5%, Silver: 10%, Gold: 15%).
+        Discounts within the allowable tier ceiling are safe (Risk Score = 0.0).
+        Penalties are only assessed for discount breaches exceeding the tier ceiling.
+        """
         tier_ceilings = {'bronze': 5.0, 'silver': 10.0, 'gold': 15.0}
         for order in self:
             ceiling = tier_ceilings.get(order.partner_id.customer_tier, 10.0) if order.partner_id else 10.0
             worst_breach = 0.0
-            total_discount_val = 0.0
+            total_excess_discount_val = 0.0
             total_gross_val = 0.0
 
             for line in order.order_line:
                 gross = line.price_unit * line.product_uom_qty
-                discount_amt = gross * (line.discount / 100.0)
                 total_gross_val += gross
-                total_discount_val += discount_amt
 
                 if line.discount > ceiling:
-                    worst_breach = max(worst_breach, line.discount - ceiling)
+                    breach = line.discount - ceiling
+                    worst_breach = max(worst_breach, breach)
+                    total_excess_discount_val += gross * (breach / 100.0)
 
-            margin_loss_pct = (total_discount_val / total_gross_val * 100.0) if total_gross_val > 0 else 0.0
-            score = round((worst_breach * 0.6) + (margin_loss_pct * 0.4), 2)
+            if worst_breach > 0.0 and total_gross_val > 0.0:
+                excess_margin_loss_pct = (total_excess_discount_val / total_gross_val * 100.0)
+                score = round((worst_breach * 0.6) + (excess_margin_loss_pct * 0.4), 2)
+            else:
+                score = 0.0
+
             order.blended_risk_score = score
 
-            if order.risk_approval_state not in ('approved', 'rejected', 'pending_finance'):
+            if order.risk_approval_state not in ('approved', 'rejected'):
                 if score > 0.0:
                     order.risk_approval_state = 'pending_manager'
                 else:
@@ -215,10 +228,64 @@ class SaleOrder(models.Model):
             )
         self.message_post(body=f"⚡ <strong>Rep Nudge Dispatched:</strong> Automated reminder sent to {rep.name} for inactive quote ({self.days_inactive} days stalled).")
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        orders = super().create(vals_list)
+        for order in orders:
+            if order.partner_id:
+                order.message_subscribe(partner_ids=[order.partner_id.id])
+        return orders
+
+    def write(self, vals):
+        res = super().write(vals)
+        if 'partner_id' in vals:
+            for order in self:
+                if order.partner_id:
+                    order.message_subscribe(partner_ids=[order.partner_id.id])
+        return res
+
+    def action_open_bargain_wizard(self):
+        """Open the Deal Negotiation & Bargain Pitch Wizard"""
+        self.ensure_one()
+        if self.is_negotiation_locked:
+            raise UserError(_("Negotiation Circuit Breaker Triggered: Maximum rounds (%s) reached. Counter-offers locked.") % self.max_negotiation_rounds)
+        if not self.order_line:
+            raise UserError(_("Please add at least one product line to the quotation before pitching a discount or bargaining."))
+        return {
+            'name': _('🤝 Deal Negotiation & Bargain Pitch'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'vantage.bargain.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_order_id': self.id,
+                'default_counter_discount': 10.0,
+            }
+        }
+
+    def action_view_customer_portal(self):
+        """Open customer portal view in new browser tab for live customer negotiation / preview"""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_url',
+            'url': self.get_portal_url(),
+            'target': 'new',
+        }
+
+    def action_reset_negotiation(self):
+        """Manager override to reset negotiation circuit breaker"""
+        self.ensure_one()
+        self.negotiation_rounds = 0
+        self.is_negotiation_locked = False
+        self.message_post(body=_("🔓 <strong>Negotiation Reset:</strong> Circuit breaker reset by manager. New negotiation rounds permitted."))
+
     def action_customer_counter_offer(self, line_id=None, counter_discount=0.0, notes=""):
         self.ensure_one()
         if self.is_negotiation_locked:
             raise UserError(_("Negotiation Circuit Breaker Triggered: Maximum rounds (%s) reached. Counter-offers locked.") % self.max_negotiation_rounds)
+
+        if not self.order_line:
+            raise UserError(_("Cannot submit a counter-offer on a quotation without product lines. Please add items to the quotation first."))
 
         self.negotiation_rounds += 1
 
