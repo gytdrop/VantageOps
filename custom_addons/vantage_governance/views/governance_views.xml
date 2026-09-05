@@ -33,12 +33,9 @@
                 </button>
             </xpath>
 
-            <!-- Customer Tier Badge next to Customer field -->
+            <!-- Customer Tier next to Customer field -->
             <xpath expr="//field[@name='partner_id']" position="after">
-                <field name="partner_customer_tier" widget="badge"
-                       decoration-info="partner_customer_tier == 'bronze'"
-                       decoration-warning="partner_customer_tier == 'silver'"
-                       decoration-success="partner_customer_tier == 'gold'"/>
+                <field name="partner_customer_tier_id" options="{'no_create': True}"/>
             </xpath>
 
             <!-- Ensure Discount Percentage is ALWAYS visible & editable on Quotation Lines -->
@@ -50,9 +47,14 @@
             <!-- Governance Notebook Page -->
             <xpath expr="//notebook" position="inside">
                 <page name="page_akthar_approvals" string="Risk &amp; Approvals">
+                    <div class="alert alert-secondary" role="status">
+                        <strong>📐 Applied Policy:</strong> <field name="governance_policy_summary" readonly="1" nolabel="1"/>
+                    </div>
                     <group>
                         <group string="Commercial Governance &amp; Two-Tier Approvals">
-                            <field name="partner_customer_tier" widget="selection"/>
+                            <field name="partner_customer_tier_id" options="{'no_create': True}"/>
+                            <field name="tier_discount_ceiling" readonly="1"/>
+                            <field name="manager_risk_ceiling" readonly="1"/>
                             <field name="blended_risk_score" readonly="1"/>
                             <field name="risk_approval_state" widget="badge"
                                    decoration-info="risk_approval_state == 'draft'"
@@ -126,7 +128,8 @@
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='vat']" position="after">
-                <field name="customer_tier" widget="selection"/>
+                <field name="customer_tier_id" options="{'no_create': True}"/>
+                <field name="customer_tier_ceiling" readonly="1" invisible="not customer_tier_id"/>
             </xpath>
         </field>
     </record>
@@ -138,10 +141,8 @@
         <field name="inherit_id" ref="base.view_partner_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='user_id']" position="after">
-                <field name="customer_tier" widget="badge" optional="show"
-                       decoration-info="customer_tier == 'bronze'"
-                       decoration-warning="customer_tier == 'silver'"
-                       decoration-success="customer_tier == 'gold'"/>
+                <field name="customer_tier_id" optional="show"/>
+                <field name="customer_tier_ceiling" string="Ceiling (%)" optional="hide"/>
             </xpath>
         </field>
     </record>
@@ -153,10 +154,12 @@
         <field name="inherit_id" ref="sale.view_quotation_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='state']" position="before">
+                <!-- Badge colours follow the configured Manager ceiling rather than a fixed 10.0 -->
+                <field name="manager_risk_ceiling" column_invisible="True"/>
                 <field name="blended_risk_score" string="Risk" widget="badge" optional="show"
                        decoration-success="blended_risk_score == 0"
-                       decoration-warning="blended_risk_score &gt; 0 and blended_risk_score &lt;= 10"
-                       decoration-danger="blended_risk_score &gt; 10"/>
+                       decoration-warning="blended_risk_score &gt; 0 and blended_risk_score &lt;= manager_risk_ceiling"
+                       decoration-danger="blended_risk_score &gt; manager_risk_ceiling"/>
                 <field name="risk_approval_state" string="Approval" widget="badge" optional="show"
                        decoration-info="risk_approval_state == 'draft'"
                        decoration-warning="risk_approval_state == 'pending_manager'"
@@ -182,7 +185,7 @@
                         domain="[('risk_approval_state', '=', 'pending_manager')]"/>
                 <filter name="filter_pending_finance" string="🏛️ Pending Finance" 
                         domain="[('risk_approval_state', '=', 'pending_finance')]"/>
-                <filter name="filter_stalled_deals" string="⏳ Stalled Deals (&gt;3 Days)" 
+                <filter name="filter_stalled_deals" string="⏳ Stalled Deals" 
                         domain="[('deal_health', '=', 'stalled')]"/>
                 <filter name="filter_margin_bleed" string="🚨 Critical Margin Bleed" 
                         domain="[('deal_health', '=', 'margin_bleed')]"/>

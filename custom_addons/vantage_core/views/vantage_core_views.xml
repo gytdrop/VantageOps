@@ -34,4 +34,21 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Product Template: Subscription Cadence Configuration -->
+    <record id="view_product_template_form_inherit_vantage_core" model="ir.ui.view">
+        <field name="name">product.template.form.inherit.vantage.core</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='sales']/group[@name='sale']" position="inside">
+                <group string="VantageOps Recurring Billing" name="vantage_subscription">
+                    <field name="vantage_is_subscription"/>
+                    <field name="vantage_billing_cadence" invisible="not vantage_is_subscription"/>
+                    <field name="vantage_contract_months" invisible="not vantage_is_subscription"/>
+                    <field name="vantage_price_basis" invisible="not vantage_is_subscription"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
 </odoo>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_vantage_fulfillment" model="ir.ui.view">
+        <field name="name">res.config.settings.form.inherit.vantage.fulfillment</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="sale.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='sale_management']" position="inside">
+                <block title="VantageOps — Multi-Depot Fulfillment" name="vantage_fulfillment_container">
+                    <setting id="vantage_split_legs" string="Depot Allocation Budget"
+                             help="How many warehouses one order may ship from. Each extra depot adds a freight leg, so this caps the trade-off between availability and shipping cost.">
+                        <div class="content-group mt16">
+                            <div class="row">
+                                <label for="vantage_max_split_legs" class="col-lg-6 o_light_label"/>
+                                <field name="vantage_max_split_legs" class="oe_inline"/>
+                                <span class="ms-1">depots (0 = unlimited)</span>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+
+                <block title="VantageOps — Subscription Billing" name="vantage_billing_container">
+                    <setting id="vantage_cadence_defaults" string="Cadence Defaults"
+                             help="Used by subscription products that do not define their own cadence or contract length.">
+                        <div class="content-group mt16">
+                            <div class="row">
+                                <label for="vantage_default_cadence" class="col-lg-6 o_light_label"/>
+                                <field name="vantage_default_cadence" class="oe_inline"/>
+                            </div>
+                            <div class="row">
+                                <label for="vantage_default_contract_months" class="col-lg-6 o_light_label"/>
+                                <field name="vantage_default_contract_months" class="oe_inline"/>
+                                <span class="ms-1">months</span>
+                            </div>
+                        </div>
+                    </setting>
+                    <setting id="vantage_anchor" string="Billing Cycle Anchor"
+                             help="Anniversary billing starts every cycle on the service start date. Calendar alignment snaps cycles to month/quarter/year boundaries, which is what produces prorated first and last cycles.">
+                        <div class="content-group mt16">
+                            <div class="row">
+                                <label for="vantage_subscription_anchor" class="col-lg-6 o_light_label"/>
+                                <field name="vantage_subscription_anchor" class="oe_inline"/>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

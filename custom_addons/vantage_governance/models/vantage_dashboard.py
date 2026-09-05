@@ -15,7 +15,7 @@ class VantageSalesDashboard(models.Model):
 
     # --- 2. HEALTH METRICS ---
     healthy_deal_count = fields.Integer(string='Healthy Deals', compute='_compute_metrics')
-    stalled_deal_count = fields.Integer(string='Stalled Deals (>3 Days)', compute='_compute_metrics')
+    stalled_deal_count = fields.Integer(string='Stalled Deals', compute='_compute_metrics')
     margin_bleed_count = fields.Integer(string='Critical Margin Bleed', compute='_compute_metrics')
 
     # --- 3. APPROVALS METRICS ---
@@ -148,7 +148,7 @@ class VantageSalesDashboard(models.Model):
 
     def action_view_stalled(self):
         return {
-            'name': _('Stalled Quotes (>3 Days Inactive)'),
+            'name': _('Stalled Quotes (Inactive Beyond Threshold)'),
             'type': 'ir.actions.act_window',
             'res_model': 'sale.order',
             'view_mode': 'tree,kanban,form',
@@ -233,23 +233,29 @@ class VantageSalesDashboard(models.Model):
         quant_obj = self.env['stock.quant'].sudo()
         upsell_obj = self.env['vantage.upsell.rule'].sudo() if 'vantage.upsell.rule' in self.env else None
 
-        # 1. Seed Dedicated Customer Tiers
+        # 1. Seed Dedicated Customer Tiers (resolved against the configurable tier policy)
+        tier_obj = self.env['vantage.discount.tier'].sudo()
+        tiers_by_code = {t.code: t for t in tier_obj.search([])}
+
         partners_data = [
             ('Acme Corp (Bronze Tier)', 'bronze', 'acme_bronze@dealflow360.demo'),
             ('Beta Industries (Silver Tier)', 'silver', 'beta_silver@dealflow360.demo'),
             ('Cyberdyne Systems (Gold VIP)', 'gold', 'cyberdyne_gold@dealflow360.demo'),
         ]
-        for name, tier, email in partners_data:
+        for name, tier_code, email in partners_data:
+            tier = tiers_by_code.get(tier_code)
+            if not tier:
+                continue
             p = partner_obj.search([('name', '=', name)], limit=1)
             if not p:
                 partner_obj.create({
                     'name': name,
-                    'customer_tier': tier,
+                    'customer_tier_id': tier.id,
                     'email': email,
                     'customer_rank': 1,
                 })
             else:
-                p.write({'customer_tier': tier})
+                p.write({'customer_tier_id': tier.id})
 
         # Auto-classify existing standard demo partners so reps can pick any contact
         existing_map = {
@@ -262,10 +268,28 @@ class VantageSalesDashboard(models.Model):
             'Test Gold VIP Client': 'gold',
             'Test Bronze Client': 'bronze',
         }
-        for pname, tier in existing_map.items():
+        for pname, tier_code in existing_map.items():
+            tier = tiers_by_code.get(tier_code)
             ep = partner_obj.search([('name', 'ilike', pname)], limit=1)
-            if ep:
-                ep.write({'customer_tier': tier})
+            if ep and tier:
+                ep.write({'customer_tier_id': tier.id})
+
+        # 1b. Seed product categories + a category-specific ceiling on the Gold tier so the
+        #     "Gold gets 15% on Hardware but only 8% on Services" rule is demoable in one click.
+        categ_obj = self.env['product.category'].sudo()
+        hardware_categ = categ_obj.search([('name', '=', 'DealFlow Hardware')], limit=1) or \
+            categ_obj.create({'name': 'DealFlow Hardware'})
+        services_categ = categ_obj.search([('name', '=', 'DealFlow Services')], limit=1) or \
+            categ_obj.create({'name': 'DealFlow Services'})
+
+        gold_tier = tiers_by_code.get('gold')
+        if gold_tier and not gold_tier.category_ceiling_ids.filtered(
+                lambda c: c.product_category_id == services_categ):
+            self.env['vantage.discount.tier.category'].sudo().create({
+                'tier_id': gold_tier.id,
+                'product_category_id': services_categ.id,
+                'discount_ceiling': 8.0,
+            })
 
         # 2. Seed Warehouses & Cost Weights
         main_wh = warehouse_obj.search([('code', '=', 'MAIN')], limit=1)
@@ -309,84 +333,117 @@ class VantageSalesDashboard(models.Model):
         else:
             east_wh.write({'name': 'East Depot', 'shipping_cost_weight': 2.5, 'base_shipping_cost': 60.0})
 
+        # Third regional depot: proves the allocation engine is N-way, not primary+secondary.
+        west_wh = warehouse_obj.search([('code', '=', 'WEST')], limit=1)
+        west_vals = {
+            'name': 'West Hub',
+            'code': 'WEST',
+            'shipping_cost_weight': 2.0,
+            'base_shipping_cost': 45.0,
+        }
+        if west_wh:
+            west_wh.write(west_vals)
+        else:
+            west_wh = warehouse_obj.create(west_vals)
+
+        for wh in (main_wh, east_wh, west_wh):
+            wh.write({'vantage_allow_split_source': True})
+
         # 3. Seed Demo Products
         # Hardware: DealFlow Enterprise Server (Storable)
+        server_vals = {
+            'name': 'DealFlow Enterprise Server',
+            'type': 'product',
+            'list_price': 2500.0,
+            'standard_price': 1500.0,
+            'default_code': 'DF-SRV-01',
+            'categ_id': hardware_categ.id,
+        }
         server_prod = product_obj.search([('name', '=', 'DealFlow Enterprise Server')], limit=1)
         if not server_prod:
-            server_prod = product_obj.create({
-                'name': 'DealFlow Enterprise Server',
-                'type': 'product',
-                'list_price': 2500.0,
-                'standard_price': 1500.0,
-                'default_code': 'DF-SRV-01',
-            })
+            server_prod = product_obj.create(server_vals)
         else:
-            server_prod.write({'list_price': 2500.0, 'standard_price': 1500.0, 'type': 'product'})
+            server_prod.write(server_vals)
 
         # Service: Enterprise Setup & Deployment
+        setup_vals = {
+            'name': 'Enterprise Setup & Deployment',
+            'type': 'service',
+            'list_price': 1200.0,
+            'standard_price': 800.0,
+            'default_code': 'DF-SRV-SET',
+            'categ_id': services_categ.id,
+        }
         setup_prod = product_obj.search([('name', '=', 'Enterprise Setup & Deployment')], limit=1)
         if not setup_prod:
-            setup_prod = product_obj.create({
-                'name': 'Enterprise Setup & Deployment',
-                'type': 'service',
-                'list_price': 1200.0,
-                'standard_price': 800.0,
-                'default_code': 'DF-SRV-SET',
-            })
+            setup_prod = product_obj.create(setup_vals)
+        else:
+            setup_prod.write(setup_vals)
 
-        # Subscription: DealFlow360 SaaS License
+        # Subscription: DealFlow360 SaaS License — quarterly cadence over a 12-month contract
+        sub_vals = {
+            'name': 'DealFlow360 SaaS Annual License',
+            'type': 'service',
+            'list_price': 600.0,
+            'standard_price': 50.0,
+            'default_code': 'DF-SAAS-ANN',
+            'categ_id': services_categ.id,
+            'vantage_is_subscription': True,
+            'vantage_billing_cadence': 'quarterly',
+            'vantage_contract_months': 12,
+            'vantage_price_basis': 'contract',
+        }
         sub_prod = product_obj.search([('name', '=', 'DealFlow360 SaaS Annual License')], limit=1)
         if not sub_prod:
-            sub_prod = product_obj.create({
-                'name': 'DealFlow360 SaaS Annual License',
-                'type': 'service',
-                'list_price': 600.0,
-                'standard_price': 50.0,
-                'default_code': 'DF-SAAS-ANN',
-            })
+            sub_prod = product_obj.create(sub_vals)
+        else:
+            sub_prod.write(sub_vals)
 
         # Upsell Option: 24/7 Mission-Critical SLA Warranty
+        sla_vals = {
+            'name': '24/7 Mission-Critical SLA Warranty',
+            'type': 'service',
+            'list_price': 450.0,
+            'standard_price': 100.0,
+            'default_code': 'DF-SLA-247',
+            'categ_id': services_categ.id,
+        }
         sla_prod = product_obj.search([('name', '=', '24/7 Mission-Critical SLA Warranty')], limit=1)
         if not sla_prod:
-            sla_prod = product_obj.create({
-                'name': '24/7 Mission-Critical SLA Warranty',
-                'type': 'service',
-                'list_price': 450.0,
-                'standard_price': 100.0,
-                'default_code': 'DF-SLA-247',
-            })
+            sla_prod = product_obj.create(sla_vals)
+        else:
+            sla_prod.write(sla_vals)
 
-        # 4. Seed Stock Quants for Server Product (5 at Main WH, 15 at East Depot)
-        main_loc = main_wh.lot_stock_id
-        east_loc = east_wh.lot_stock_id
+        # 4. Seed Stock Quants across THREE depots so the bundle's 10 servers genuinely
+        #    need a 3-way split: Main 5 + West 3 + East 2. Ranking is by landed leg cost
+        #    (Main $25, West $45x2.0=$90, East $60x2.5=$150), so the engine fills the
+        #    cheap depots first and only touches East for the last 2 units.
         quant_mode = self.env['stock.quant'].with_context(inventory_mode=True).sudo()
-        if main_loc and server_prod:
-            curr_main = server_prod.with_context(location=main_loc.id).free_qty
-            if curr_main != 5.0:
-                q_main = quant_mode.search([('product_id', '=', server_prod.id), ('location_id', '=', main_loc.id)], limit=1)
-                if not q_main:
-                    q_main = quant_mode.create({
-                        'product_id': server_prod.id,
-                        'location_id': main_loc.id,
-                        'inventory_quantity': 5.0,
-                    })
-                else:
-                    q_main.inventory_quantity = 5.0
-                q_main.action_apply_inventory()
-
-        if east_loc and server_prod:
-            curr_east = server_prod.with_context(location=east_loc.id).free_qty
-            if curr_east != 15.0:
-                q_east = quant_mode.search([('product_id', '=', server_prod.id), ('location_id', '=', east_loc.id)], limit=1)
-                if not q_east:
-                    q_east = quant_mode.create({
-                        'product_id': server_prod.id,
-                        'location_id': east_loc.id,
-                        'inventory_quantity': 15.0,
-                    })
-                else:
-                    q_east.inventory_quantity = 15.0
-                q_east.action_apply_inventory()
+        stock_plan = [(main_wh, 5.0), (west_wh, 3.0), (east_wh, 6.0)]
+        for warehouse, target_free in stock_plan:
+            location = warehouse.lot_stock_id
+            if not location or not server_prod:
+                continue
+            quant = quant_mode.search([
+                ('product_id', '=', server_prod.id), ('location_id', '=', location.id),
+            ], limit=1)
+            # Earlier demo orders may hold reservations against this depot. Inventory
+            # adjustments set the on-hand figure, so top up over whatever is reserved to
+            # land on the intended *free* quantity — otherwise re-seeding leaves a depot
+            # looking empty to the allocation engine.
+            reserved = quant.reserved_quantity if quant else 0.0
+            target_on_hand = target_free + reserved
+            if quant and abs(quant.quantity - target_on_hand) < 0.001:
+                continue
+            if not quant:
+                quant = quant_mode.create({
+                    'product_id': server_prod.id,
+                    'location_id': location.id,
+                    'inventory_quantity': target_on_hand,
+                })
+            else:
+                quant.inventory_quantity = target_on_hand
+            quant.action_apply_inventory()
 
         # 5. Seed Upsell Pairing Rule
         if upsell_obj and server_prod and sla_prod:
@@ -420,8 +477,9 @@ class VantageSalesDashboard(models.Model):
             'params': {
                 'title': _('⚡ Turnkey Seed Data Ready!'),
                 'message': _(
-                    'Pre-seeded Bronze/Silver/Gold accounts, Main Warehouse (5 units stock, $25 base) '
-                    '& East Depot (15 units stock, $60 base), Demo Products, and Smart Upsell Rules.'
+                    'Pre-seeded Bronze/Silver/Gold tiers (Gold capped at 8%% on Services), three '
+                    'regional depots — Main 5u/$25, West Hub 3u/$45x2.0, East Depot 6u/$60x2.5 — '
+                    'a quarterly SaaS subscription, demo products and Smart Upsell Rules.'
                 ),
                 'sticky': False,
                 'type': 'success',

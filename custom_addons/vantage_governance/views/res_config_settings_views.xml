@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_vantage_governance" model="ir.ui.view">
+        <field name="name">res.config.settings.form.inherit.vantage.governance</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="sale.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='sale_management']" position="inside">
+                <block title="VantageOps — Discount Governance" name="vantage_governance_container">
+                    <setting id="vantage_tiers" string="Customer Discount Tiers"
+                             help="Discount ceilings live in configurable tiers, with optional per-product-category overrides.">
+                        <div class="mt8">
+                            <button name="action_vantage_open_tiers" icon="oi-arrow-right" type="object"
+                                    string="Configure Tiers" class="btn-link"/>
+                        </div>
+                    </setting>
+                    <setting id="vantage_fallback_ceiling" string="Fallback Discount Ceiling"
+                             help="Applied to customers that have not been assigned a tier yet.">
+                        <div class="content-group mt16">
+                            <div class="row">
+                                <label for="vantage_default_discount_ceiling" class="col-lg-6 o_light_label"/>
+                                <field name="vantage_default_discount_ceiling" class="oe_inline"/>
+                                <span class="ms-1">%</span>
+                            </div>
+                        </div>
+                    </setting>
+                    <setting id="vantage_risk_weights" string="Blended Risk Weights"
+                             help="How the worst single breach and the order-wide excess margin loss combine into the score.">
+                        <div class="content-group mt16">
+                            <div class="row">
+                                <label for="vantage_breach_weight" class="col-lg-6 o_light_label"/>
+                                <field name="vantage_breach_weight" class="oe_inline"/>
+                            </div>
+                            <div class="row">
+                                <label for="vantage_margin_loss_weight" class="col-lg-6 o_light_label"/>
+                                <field name="vantage_margin_loss_weight" class="oe_inline"/>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+
+                <block title="VantageOps — Approval Routing" name="vantage_approval_container">
+                    <setting id="vantage_thresholds" string="Escalation Thresholds"
+                             help="Deals above the trigger need sign-off; deals above the manager ceiling escalate to the Finance Director. A customer tier may raise its own manager ceiling.">
+                        <div class="content-group mt16">
+                            <div class="row">
+                                <label for="vantage_risk_trigger_threshold" class="col-lg-6 o_light_label"/>
+                                <field name="vantage_risk_trigger_threshold" class="oe_inline"/>
+                                <span class="ms-1">points</span>
+                            </div>
+                            <div class="row">
+                                <label for="vantage_manager_risk_ceiling" class="col-lg-6 o_light_label"/>
+                                <field name="vantage_manager_risk_ceiling" class="oe_inline"/>
+                                <span class="ms-1">points</span>
+                            </div>
+                        </div>
+                        <div class="mt8">
+                            <button name="action_vantage_recompute_risk" icon="fa-refresh" type="object"
+                                    string="Re-score Open Quotations" class="btn-link"/>
+                        </div>
+                    </setting>
+                    <setting id="vantage_circuit_breaker" string="Negotiation Circuit Breaker"
+                             help="Counter-offer rounds allowed before terms lock. Sales teams and customer tiers can override this.">
+                        <div class="content-group mt16">
+                            <div class="row">
+                                <label for="vantage_default_max_negotiation_rounds" class="col-lg-6 o_light_label"/>
+                                <field name="vantage_default_max_negotiation_rounds" class="oe_inline"/>
+                                <span class="ms-1">rounds</span>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+
+                <block title="VantageOps — Deal Health" name="vantage_health_container">
+                    <setting id="vantage_health_thresholds" string="Health Thresholds"
+                             help="Drive the Stalled and Critical Margin Bleed indicators on the Executive Sales Cockpit.">
+                        <div class="content-group mt16">
+                            <div class="row">
+                                <label for="vantage_stalled_days" class="col-lg-6 o_light_label"/>
+                                <field name="vantage_stalled_days" class="oe_inline"/>
+                                <span class="ms-1">days</span>
+                            </div>
+                            <div class="row">
+                                <label for="vantage_margin_bleed_threshold" class="col-lg-6 o_light_label"/>
+                                <field name="vantage_margin_bleed_threshold" class="oe_inline"/>
+                                <span class="ms-1">points</span>
+                            </div>
+                            <div class="row">
+                                <label for="vantage_discount_anomaly_threshold" class="col-lg-6 o_light_label"/>
+                                <field name="vantage_discount_anomaly_threshold" class="oe_inline"/>
+                                <span class="ms-1">%</span>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>
