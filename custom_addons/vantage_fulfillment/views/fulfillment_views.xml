@@ -24,6 +24,7 @@
             <xpath expr="//field[@name='order_line']/tree/field[@name='price_subtotal']" position="after">
                 <field name="margin_delta" string="Margin ($)" optional="show"/>
                 <field name="free_qty_today" string="Free Stock" optional="show"/>
+                <field name="deficit_qty" string="Deficit" optional="show"/>
                 <field name="requires_split" optional="hide"/>
                 <field name="fulfillment_warehouse_id" optional="show"/>
             </xpath>
@@ -38,6 +39,11 @@
                         </group>
                     </group>
                 </page>
+            </xpath>
+
+            <!-- Optional Products View Extension -->
+            <xpath expr="//field[@name='sale_order_option_ids']/tree/field[@name='price_unit']" position="after">
+                <field name="margin_delta" string="Margin ($)" optional="show" widget="monetary"/>
             </xpath>
         </field>
     </record>

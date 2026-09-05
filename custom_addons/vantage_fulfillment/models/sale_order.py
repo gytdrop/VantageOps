@@ -82,6 +82,12 @@ class SaleOrderLine(models.Model):
     is_split_child = fields.Boolean(string='Is Backorder Split Line', default=False)
     split_source_line_id = fields.Many2one('sale.order.line', string='Source Split Line')
     fulfillment_warehouse_id = fields.Many2one('stock.warehouse', string='Fulfillment Warehouse')
+    deficit_qty = fields.Float(
+        string='Deficit Quantity',
+        compute='_compute_deficit_qty',
+        store=True,
+        help="Deficit quantity exceeding primary warehouse available stock."
+    )
 
     margin_delta = fields.Float(
         string='Margin Delta ($)',
@@ -108,8 +114,35 @@ class SaleOrderLine(models.Model):
             else:
                 line.requires_split = False
 
+    @api.depends('free_qty_today', 'product_uom_qty', 'is_split_child')
+    def _compute_deficit_qty(self):
+        for line in self:
+            if not line.is_split_child and line.product_id.type == 'product' and line.product_uom_qty > line.free_qty_today:
+                line.deficit_qty = line.product_uom_qty - line.free_qty_today
+            else:
+                line.deficit_qty = 0.0
+
     @api.depends('price_subtotal', 'product_id', 'product_uom_qty')
     def _compute_margin_delta(self):
         for line in self:
             cost = line.product_id.standard_price * line.product_uom_qty if line.product_id else 0.0
             line.margin_delta = round(line.price_subtotal - cost, 2)
+
+
+class SaleOrderOption(models.Model):
+    _inherit = 'sale.order.option'
+
+    margin_delta = fields.Float(
+        string='Margin Delta ($)',
+        compute='_compute_margin_delta',
+        store=True,
+        help="Net profit contribution of this optional product."
+    )
+
+    @api.depends('price_unit', 'product_id', 'quantity', 'discount')
+    def _compute_margin_delta(self):
+        for option in self:
+            cost = option.product_id.standard_price * option.quantity if option.product_id else 0.0
+            # Price after discount
+            price_subtotal = option.price_unit * option.quantity * (1 - (option.discount or 0.0) / 100.0)
+            option.margin_delta = round(price_subtotal - cost, 2)
