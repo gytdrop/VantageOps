@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- 1. The Top-Level App in the 9-Grid Menu -->
+        <menuitem id="menu_vantageops_root"
+                  name="VantageOps"
+                  sequence="1"/>
+
+        <!-- 2. The Header Tabs (Sub-menus mapped to Excalidraw design) -->
+        
+
+        <!-- Quotations Tab (Reusing native Odoo Sales action) -->
+        <menuitem id="menu_vantageops_quotations"
+                  name="Quotations"
+                  parent="menu_vantageops_root"
+                  action="sale.action_quotations_with_onboarding"
+                  sequence="20"/>
+
+        <!-- Approvals Tab (Filters standard quotes to only show those pending manager/finance approval) -->
+        <record id="action_vantage_pending_approvals" model="ir.actions.act_window">
+            <field name="name">Pending Approvals</field>
+            <field name="res_model">sale.order</field>
+            <field name="view_mode">tree,form</field>
+            <field name="domain">[('risk_approval_state', 'in', ['pending_manager', 'pending_finance', 'pending_approval'])]</field>
+        </record>
+
+        <menuitem id="menu_vantageops_approvals"
+                  name="Approvals"
+                  parent="menu_vantageops_root"
+                  action="action_vantage_pending_approvals"
+                  sequence="30"/>
+
+        <!-- Fulfillment Tab (Reusing native Odoo Stock pickings) -->
+        <menuitem id="menu_vantageops_fulfillment"
+                  name="Fulfillment"
+                  parent="menu_vantageops_root"
+                  action="stock.action_picking_tree_ready"
+                  sequence="40"/>
+
+        <!-- Subscriptions Tab (Filters hybrid recurring contracts) -->
+        <record id="action_vantage_subscriptions" model="ir.actions.act_window">
+            <field name="name">Hybrid Subscriptions</field>
+            <field name="res_model">sale.order</field>
+            <field name="view_mode">tree,form</field>
+            <field name="domain">[('is_recurring_hybrid', '=', True)]</field>
+            <field name="context">{'default_is_recurring_hybrid': True}</field>
+        </record>
+
+        <menuitem id="menu_vantageops_subscriptions"
+                  name="Subscriptions"
+                  parent="menu_vantageops_root"
+                  action="action_vantage_subscriptions"
+                  sequence="50"/>
+
+        <!-- Invoices Tab (Reusing native Odoo Customer Invoices action) -->
+        <menuitem id="menu_vantageops_invoices"
+                  name="Invoices"
+                  parent="menu_vantageops_root"
+                  action="account.action_move_out_invoice_type"
+                  sequence="60"/>
+
+        <!-- Deal Health Tab -->
+        <record id="action_vantage_deal_health" model="ir.actions.act_window">
+            <field name="name">Deal Health</field>
+            <field name="res_model">sale.order</field>
+            <field name="view_mode">tree,kanban,form</field>
+            <field name="domain">[('deal_health', 'in', ['margin_bleed', 'stalled'])]</field>
+        </record>
+
+        <menuitem id="menu_vantageops_deal_health"
+                  name="Deal Health"
+                  parent="menu_vantageops_root"
+                  action="action_vantage_deal_health"
+                  sequence="65"/>
+
+        <!-- Reports Tab (Native Sales Analysis) -->
+        <menuitem id="menu_vantageops_reports"
+                  name="Reports"
+                  parent="menu_vantageops_root"
+                  action="sale.action_order_report_all"
+                  sequence="68"/>
+
+        <!-- Products Tab (Reusing native Odoo Products action) -->
+        <menuitem id="menu_vantageops_products"
+                  name="Product"
+                  parent="menu_vantageops_root"
+                  action="sale.product_template_action"
+                  sequence="70"/>
+    </data>
+</odoo>

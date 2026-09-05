@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_vantage_sales_dashboard_user,vantage.sales.dashboard.user,model_vantage_sales_dashboard,base.group_user,1,1,1,1
+access_vantage_bargain_wizard_user,vantage.bargain.wizard.user,model_vantage_bargain_wizard,base.group_user,1,1,1,1
+access_vantage_discount_tier_user,vantage.discount.tier.user,model_vantage_discount_tier,base.group_user,1,0,0,0
+access_vantage_discount_tier_manager,vantage.discount.tier.manager,model_vantage_discount_tier,sales_team.group_sale_manager,1,1,1,1
+access_vantage_discount_tier_category_user,vantage.discount.tier.category.user,model_vantage_discount_tier_category,base.group_user,1,0,0,0
+access_vantage_discount_tier_category_manager,vantage.discount.tier.category.manager,model_vantage_discount_tier_category,sales_team.group_sale_manager,1,1,1,1

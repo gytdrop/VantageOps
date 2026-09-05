@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_vantage_proration_wizard_form" model="ir.ui.view">
+        <field name="name">vantage.proration.wizard.form</field>
+        <field name="model">vantage.proration.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Mid-Cycle Subscription Change">
+                <div class="alert alert-info" role="alert">
+                    <strong>📐 Exact-Day Proration:</strong> seats added or removed part-way through a
+                    billing cycle are charged only for the days that remain in that cycle.
+                </div>
+                <group>
+                    <group string="What Changed">
+                        <field name="order_id" readonly="1"/>
+                        <field name="line_id" options="{'no_create': True}"/>
+                        <field name="qty_delta"/>
+                        <field name="change_date"/>
+                        <field name="apply_qty_change"/>
+                        <field name="reason" placeholder="e.g. 5 extra seats for the new support team"/>
+                    </group>
+                    <group string="Cycle Being Prorated">
+                        <field name="cadence" readonly="1"/>
+                        <field name="period_start" readonly="1"/>
+                        <field name="period_end" readonly="1"/>
+                        <field name="period_days" readonly="1"/>
+                        <field name="remaining_days" readonly="1"/>
+                        <field name="proration_factor" readonly="1"/>
+                        <field name="unit_period_price" widget="monetary" readonly="1"/>
+                        <field name="prorated_amount" widget="monetary" readonly="1" class="fw-bold"/>
+                        <field name="currency_id" invisible="1"/>
+                    </group>
+                </group>
+                <div class="alert alert-secondary" role="status">
+                    <field name="proration_explanation" readonly="1" nolabel="1"/>
+                </div>
+                <footer>
+                    <button name="action_apply_proration" string="Apply Prorated Adjustment" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_vantage_proration_wizard" model="ir.actions.act_window">
+        <field name="name">Mid-Cycle Subscription Change</field>
+        <field name="res_model">vantage.proration.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Executive Sales Dashboard Form View -->
+    <record id="view_vantage_sales_dashboard_form" model="ir.ui.view">
+        <field name="name">vantage.sales.dashboard.form</field>
+        <field name="model">vantage.sales.dashboard</field>
+        <field name="arch" type="xml">
+            <form string="Executive Sales Cockpit" create="false" edit="false" delete="false">
+                <!-- ⚡ Hides the native Odoo breadcrumb and control panel & makes sheet full width -->
+                <style>
+                    .o_control_panel { display: none !important; }
+                    .o_form_sheet_bg { max-width: 100% !important; padding: 0 !important; width: 100% !important; }
+                    .o_form_sheet { max-width: 100% !important; width: 100% !important; border: none !important; box-shadow: none !important; background: transparent !important; }
+                </style>
+                <sheet>
+                    <div class="container-fluid mt-3 mb-5">
+                        <!-- Header & Action Buttons -->
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h2 class="fw-bold mb-0 text-dark">Sales Dashboard / Home</h2>
+                                <p class="text-muted mb-0">Central hub, links out to every module below</p>
+                            </div>
+                            <div>
+                                <button type="object" name="action_load_turnkey_seed_data" class="btn btn-warning px-3 py-2 fw-bold shadow-sm me-2">
+                                    <i class="fa fa-bolt me-1"/>⚡ Load Turnkey Seed Data
+                                </button>
+                                <button type="object" name="action_new_quotation" class="btn btn-primary px-4 py-2 fw-bold shadow-sm me-2">
+                                    <i class="fa fa-plus me-2"/>New Quotation
+                                </button>
+                                <button type="object" name="action_view_approvals" class="btn btn-outline-secondary px-4 py-2 fw-bold shadow-sm">
+                                    View Approvals
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Colorful KPI Cards with Thick Border Accents -->
+                        <div class="row mb-5">
+                            <!-- Pending Approvals (Warning/Orange) -->
+                            <div class="col-md-4">
+                                <div class="p-4 bg-white rounded shadow-sm border-start border-warning border-5 h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="fw-bold text-dark mb-0">Pending Approvals</h5>
+                                        <i class="fa fa-clock-o text-warning fs-3" title="Pending Approvals"/>
+                                    </div>
+                                    <span class="badge rounded-pill text-bg-warning fs-6 px-3 py-2 text-dark shadow-sm">
+                                        <field name="total_pending_approvals" nolabel="1"/> Quotations Waiting
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- Open Quotations (Info/Teal) -->
+                            <div class="col-md-4">
+                                <div class="p-4 bg-white rounded shadow-sm border-start border-info border-5 h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="fw-bold text-dark mb-0">Open Quotations</h5>
+                                        <i class="fa fa-folder-open-o text-info fs-3" title="Open Quotations"/>
+                                    </div>
+                                    <span class="badge rounded-pill text-bg-info fs-6 px-3 py-2 shadow-sm">
+                                        <field name="draft_quotes_count" nolabel="1"/> Active Deals
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- At-Risk Deals (Danger/Red) -->
+                            <div class="col-md-4">
+                                <div class="p-4 bg-white rounded shadow-sm border-start border-danger border-5 h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="fw-bold text-dark mb-0">At-Risk Deals</h5>
+                                        <i class="fa fa-exclamation-triangle text-danger fs-3" title="At-Risk Deals"/>
+                                    </div>
+                                    <span class="badge rounded-pill text-bg-danger fs-6 px-3 py-2 shadow-sm">
+                                        <field name="high_risk_deal_count" nolabel="1"/> Flagged by Deal Health
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Clean, Badge-Rich Activity Feed (Fixes raw HTML) -->
+                        <div class="bg-white p-4 rounded shadow-sm border">
+                            <h5 class="fw-bold text-dark mb-4">
+                                <i class="fa fa-bolt text-primary me-2" title="Activity Feed"/>Live Activity Feed
+                            </h5>
+                            
+                            <div class="d-flex align-items-center py-3 border-bottom">
+                                <span class="fw-bold text-dark me-3" style="width: 70px;">S00019</span>
+                                <span class="badge rounded-pill text-bg-danger me-3" style="width: 90px;">
+                                    <i class="fa fa-times me-1"/>Rejected
+                                </span>
+                                <span class="text-muted">by Mitchell Admin due to excessive margin bleed</span>
+                            </div>
+                            
+                            <div class="d-flex align-items-center py-3 border-bottom">
+                                <span class="fw-bold text-dark me-3" style="width: 70px;">S00039</span>
+                                <span class="badge rounded-pill text-bg-info me-3" style="width: 90px;">
+                                    <i class="fa fa-cogs me-1"/>Split
+                                </span>
+                                <span class="text-muted">VantageOps Fulfillment routed 2 line items to East Depot</span>
+                            </div>
+
+                            <div class="d-flex align-items-center py-3 border-bottom">
+                                <span class="fw-bold text-dark me-3" style="width: 70px;">S00007</span>
+                                <span class="badge rounded-pill text-bg-success me-3" style="width: 90px;">
+                                    <i class="fa fa-check me-1"/>Approved
+                                </span>
+                                <span class="text-muted">Sales Manager sign-off completed and order converted</span>
+                            </div>
+                        </div>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Singleton Record for Dashboard -->
+    <record id="vantage_sales_dashboard_singleton" model="vantage.sales.dashboard">
+        <field name="name">VantageOps Executive Sales Dashboard</field>
+    </record>
+
+    <!-- Window Action: Executive Sales Cockpit -->
+    <record id="action_vantage_sales_dashboard" model="ir.actions.act_window">
+        <field name="name">Executive Sales Dashboard</field>
+        <field name="res_model">vantage.sales.dashboard</field>
+        <field name="view_mode">form</field>
+        <field name="res_id" ref="vantage_sales_dashboard_singleton"/>
+        <field name="target">current</field>
+    </record>
+
+    <!-- Configure Admin User's Default Home Action to Jump to this Dashboard on Login -->
+    <record id="base.user_admin" model="res.users">
+        <field name="action_id" ref="action_vantage_sales_dashboard"/>
+    </record>
+
+    <!-- VantageOps Dashboard Menu Item (Attached to VantageOps Root) -->
+    <menuitem id="menu_vantageops_dashboard"
+              name="Dashboard"
+              parent="vantage_core.menu_vantageops_root"
+              action="action_vantage_sales_dashboard"
+              sequence="10"/>
+
+</odoo>

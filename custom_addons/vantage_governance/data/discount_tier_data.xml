@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Shipped starter tiers. noupdate="1" keeps administrator edits (ceilings, overrides,
+        extra tiers such as Platinum or Government) safe across module upgrades.
+    -->
+    <data noupdate="1">
+        <record id="vantage_tier_bronze" model="vantage.discount.tier">
+            <field name="name">Bronze</field>
+            <field name="code">bronze</field>
+            <field name="sequence">10</field>
+            <field name="discount_ceiling">5.0</field>
+            <field name="max_negotiation_rounds">2</field>
+            <field name="badge_color">warning</field>
+            <field name="note">Entry-level accounts. Tight discount ceiling and a short negotiation budget.</field>
+        </record>
+
+        <record id="vantage_tier_silver" model="vantage.discount.tier">
+            <field name="name">Silver</field>
+            <field name="code">silver</field>
+            <field name="sequence">20</field>
+            <field name="discount_ceiling">10.0</field>
+            <field name="max_negotiation_rounds">3</field>
+            <field name="is_default" eval="True"/>
+            <field name="badge_color">info</field>
+            <field name="note">Default tier for newly created customers.</field>
+        </record>
+
+        <record id="vantage_tier_gold" model="vantage.discount.tier">
+            <field name="name">Gold</field>
+            <field name="code">gold</field>
+            <field name="sequence">30</field>
+            <field name="discount_ceiling">15.0</field>
+            <field name="max_negotiation_rounds">5</field>
+            <field name="manager_risk_ceiling">15.0</field>
+            <field name="badge_color">success</field>
+            <field name="note">Strategic VIP accounts: wider ceiling, longer negotiation budget and a
+                higher Sales Manager sign-off limit before Finance escalation.</field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Sale Order Form Inheritance -->
+    <record id="view_order_form_inherit_vantage_governance" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.vantage.governance</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Two-Tier Approval Buttons, Bargain Pitch & Rep Nudge in Header -->
+            <xpath expr="//header" position="inside">
+                <button name="action_open_bargain_wizard" string="🤝 Pitch Counter-Offer / Bargain" type="object" class="btn-secondary"
+                        invisible="state not in ('draft', 'sent') or is_negotiation_locked"/>
+                <button name="action_reset_negotiation" string="🔄 Reset Circuit Breaker" type="object" class="btn-outline-secondary"
+                        groups="sales_team.group_sale_manager"
+                        invisible="not is_negotiation_locked or state not in ('draft', 'sent')"/>
+                <button name="action_manager_approve" string="Manager Approve" type="object" class="btn-success"
+                        invisible="risk_approval_state != 'pending_manager'"/>
+                <button name="action_finance_approve" string="Finance Approve" type="object" class="btn-primary"
+                        invisible="risk_approval_state != 'pending_finance'"/>
+                <button name="action_manager_reject" string="Reject Deal" type="object" class="btn-danger"
+                        invisible="risk_approval_state not in ('pending_manager', 'pending_finance')"/>
+                <button name="action_nudge_rep" string="Nudge Rep" type="object" class="btn-warning"
+                        invisible="deal_health != 'stalled'"/>
+            </xpath>
+
+            <!-- Customer Portal Smart Button in Stat Buttons -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_customer_portal" type="object" class="oe_stat_button" icon="fa-handshake-o">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Customer Portal</span>
+                        <span class="o_stat_value">Round <field name="negotiation_rounds"/>/<field name="max_negotiation_rounds"/></span>
+                    </div>
+                </button>
+            </xpath>
+
+            <!-- Customer Tier next to Customer field -->
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="partner_customer_tier_id" options="{'no_create': True}"/>
+            </xpath>
+
+            <!-- Ensure Discount Percentage is ALWAYS visible & editable on Quotation Lines -->
+            <xpath expr="//field[@name='order_line']/tree//field[@name='discount']" position="attributes">
+                <attribute name="groups">base.group_user</attribute>
+                <attribute name="optional">show</attribute>
+            </xpath>
+
+            <!-- Governance Notebook Page -->
+            <xpath expr="//page[@name='order_lines']" position="after">
+                <page name="page_akthar_approvals" string="Risk &amp; Approvals">
+                    <div class="alert alert-secondary" role="status">
+                        <strong>📐 Applied Policy:</strong> <field name="governance_policy_summary" readonly="1" nolabel="1"/>
+                    </div>
+                    <group>
+                        <group string="Commercial Governance &amp; Two-Tier Approvals">
+                            <field name="partner_customer_tier_id" options="{'no_create': True}"/>
+                            <field name="tier_discount_ceiling" readonly="1"/>
+                            <field name="manager_risk_ceiling" readonly="1"/>
+                            <field name="blended_risk_score" readonly="1"/>
+                            <field name="risk_approval_state" widget="badge"
+                                   decoration-info="risk_approval_state == 'draft'"
+                                   decoration-warning="risk_approval_state == 'pending_manager'"
+                                   decoration-danger="risk_approval_state in ('pending_finance', 'rejected')"
+                                   decoration-success="risk_approval_state == 'approved'"/>
+                            <field name="deal_health" widget="badge"
+                                   decoration-success="deal_health == 'healthy'"
+                                   decoration-warning="deal_health == 'stalled'"
+                                   decoration-danger="deal_health == 'margin_bleed'"/>
+                            <field name="days_inactive" readonly="1"/>
+                            <field name="discount_anomaly" readonly="1"/>
+                        </group>
+                        <group string="Customer Negotiation Activity &amp; Circuit Breaker">
+                            <field name="negotiation_rounds" readonly="1"/>
+                            <field name="max_negotiation_rounds"/>
+                            <field name="is_negotiation_locked" readonly="1"/>
+                            <field name="last_counter_offer" readonly="1"/>
+                            <div class="d-flex gap-2 mt-2" colspan="2">
+                                <button name="action_open_bargain_wizard" string="🤝 Pitch Counter-Offer / Bargain" type="object" class="btn btn-sm btn-primary"
+                                        invisible="state not in ('draft', 'sent') or is_negotiation_locked"/>
+                                <button name="action_view_customer_portal" string="🌐 Open Customer Negotiation Portal" type="object" class="btn btn-sm btn-outline-primary"/>
+                                <button name="action_reset_negotiation" string="🔄 Reset Circuit Breaker" type="object" class="btn btn-sm btn-outline-danger"
+                                        groups="sales_team.group_sale_manager"
+                                        invisible="not is_negotiation_locked"/>
+                            </div>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Deal Negotiation & Bargain Pitch Wizard View -->
+    <record id="view_vantage_bargain_wizard_form" model="ir.ui.view">
+        <field name="name">vantage.bargain.wizard.form</field>
+        <field name="model">vantage.bargain.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Deal Negotiation &amp; Bargain Pitch">
+                <div class="alert alert-info mb-3" role="alert">
+                    <strong>🤝 VantageOps Negotiation Engine:</strong> 
+                    Round <field name="negotiation_round" readonly="1" class="fw-bold"/> of <field name="max_rounds" readonly="1" class="fw-bold"/>. 
+                    Current Risk Score: <field name="current_risk_score" readonly="1" class="fw-bold"/>.
+                </div>
+                <group>
+                    <group string="Current Quotation Status">
+                        <field name="order_id" readonly="1"/>
+                        <field name="current_discount" readonly="1"/>
+                    </group>
+                    <group string="Pitch Proposal">
+                        <field name="counter_discount" widget="float"/>
+                        <field name="apply_to" widget="radio"/>
+                        <field name="line_id" invisible="apply_to != 'specific'" required="apply_to == 'specific'"/>
+                    </group>
+                </group>
+                <group string="Concession Rationale &amp; Notes">
+                    <field name="notes" placeholder="Specify concession terms, closing commitments, or executive authority notes..."/>
+                </group>
+                <footer>
+                    <button name="action_apply_pitch" string="Apply Counter-Offer / Bargain" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Partner Form Inheritance: Customer Tiers (Editable Selection) -->
+    <record id="view_partner_form_inherit_vantage" model="ir.ui.view">
+        <field name="name">res.partner.form.inherit.vantage</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='vat']" position="after">
+                <field name="customer_tier_id" options="{'no_create': True}"/>
+                <field name="customer_tier_ceiling" readonly="1" invisible="not customer_tier_id"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Partner Tree View Inheritance: Customer Tier Badge -->
+    <record id="view_partner_tree_inherit_vantage" model="ir.ui.view">
+        <field name="name">res.partner.tree.inherit.vantage</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="customer_tier_id" optional="show"/>
+                <field name="customer_tier_ceiling" string="Ceiling (%)" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Quotation Tree View Inheritance: Deal Health & Approval Badges -->
+    <record id="view_quotation_tree_inherit_vantage" model="ir.ui.view">
+        <field name="name">sale.order.tree.inherit.vantage</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_quotation_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='state']" position="before">
+                <!-- Badge colours follow the configured Manager ceiling rather than a fixed 10.0 -->
+                <field name="manager_risk_ceiling" column_invisible="True"/>
+                <field name="blended_risk_score" string="Risk" widget="badge" optional="show"
+                       decoration-success="blended_risk_score == 0"
+                       decoration-warning="blended_risk_score &gt; 0 and blended_risk_score &lt;= manager_risk_ceiling"
+                       decoration-danger="blended_risk_score &gt; manager_risk_ceiling"/>
+                <field name="risk_approval_state" string="Approval" widget="badge" optional="show"
+                       decoration-info="risk_approval_state == 'draft'"
+                       decoration-warning="risk_approval_state == 'pending_manager'"
+                       decoration-danger="risk_approval_state in ('pending_finance', 'rejected')"
+                       decoration-success="risk_approval_state == 'approved'"/>
+                <field name="deal_health" string="Deal Health" widget="badge" optional="show"
+                       decoration-success="deal_health == 'healthy'"
+                       decoration-warning="deal_health == 'stalled'"
+                       decoration-danger="deal_health == 'margin_bleed'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Sales Order Search View Inheritance: Filters for Deal Health & Approvals -->
+    <record id="view_sales_order_filter_inherit_vantage" model="ir.ui.view">
+        <field name="name">sale.order.search.inherit.vantage</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
+                <separator/>
+                <filter name="filter_pending_manager" string="⚠️ Pending Manager" 
+                        domain="[('risk_approval_state', '=', 'pending_manager')]"/>
+                <filter name="filter_pending_finance" string="🏛️ Pending Finance" 
+                        domain="[('risk_approval_state', '=', 'pending_finance')]"/>
+                <filter name="filter_stalled_deals" string="⏳ Stalled Deals" 
+                        domain="[('deal_health', '=', 'stalled')]"/>
+                <filter name="filter_margin_bleed" string="🚨 Critical Margin Bleed" 
+                        domain="[('deal_health', '=', 'margin_bleed')]"/>
+                <filter name="filter_discount_anomaly" string="📊 Discount Anomalies" 
+                        domain="[('discount_anomaly', '=', True)]"/>
+            </xpath>
+        </field>
+    </record>
+    <!-- Sales Order Kanban View Inheritance: Deal Health Badges -->
+    <record id="view_sale_order_kanban_inherit_vantage" model="ir.ui.view">
+        <field name="name">sale.order.kanban.inherit.vantage</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sale_order_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('oe_kanban_bottom_right')]" position="inside">
+                <field name="deal_health" widget="badge"
+                       decoration-success="deal_health == 'healthy'"
+                       decoration-warning="deal_health == 'stalled'"
+                       decoration-danger="deal_health == 'margin_bleed'"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ===================== Discount Tier Policy ===================== -->
+    <record id="view_vantage_discount_tier_tree" model="ir.ui.view">
+        <field name="name">vantage.discount.tier.tree</field>
+        <field name="model">vantage.discount.tier</field>
+        <field name="arch" type="xml">
+            <tree string="Customer Discount Tiers" default_order="sequence">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="discount_ceiling" string="Baseline Ceiling (%)"/>
+                <field name="manager_risk_ceiling" string="Manager Ceiling" optional="show"/>
+                <field name="max_negotiation_rounds" string="Rounds" optional="show"/>
+                <field name="partner_count" string="Customers"/>
+                <field name="is_default" widget="boolean_toggle"/>
+                <field name="active" column_invisible="True"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_vantage_discount_tier_form" model="ir.ui.view">
+        <field name="name">vantage.discount.tier.form</field>
+        <field name="model">vantage.discount.tier</field>
+        <field name="arch" type="xml">
+            <form string="Customer Discount Tier">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_partners" type="object" class="oe_stat_button" icon="fa-users">
+                            <field name="partner_count" widget="statinfo" string="Customers"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name" string="Tier Name"/>
+                        <h1><field name="name" placeholder="e.g. Platinum"/></h1>
+                    </div>
+                    <group>
+                        <group string="Identification">
+                            <field name="code" placeholder="e.g. platinum"/>
+                            <field name="sequence"/>
+                            <field name="badge_color"/>
+                            <field name="is_default"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group string="Commercial Policy">
+                            <field name="discount_ceiling"/>
+                            <field name="manager_risk_ceiling"/>
+                            <field name="max_negotiation_rounds"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Product Category Ceilings" name="category_ceilings">
+                            <div class="alert alert-info" role="status">
+                                <strong>Category-specific ceilings:</strong> a Gold customer may earn 15% on
+                                Hardware but only 10% on thin-margin Services. The lookup walks up the
+                                category tree, so an override on a parent category covers its children.
+                            </div>
+                            <field name="category_ceiling_ids">
+                                <tree editable="bottom">
+                                    <field name="product_category_id"/>
+                                    <field name="discount_ceiling"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Policy Notes" name="notes">
+                            <field name="note" placeholder="Why this tier exists, who approves exceptions..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_vantage_discount_tier_search" model="ir.ui.view">
+        <field name="name">vantage.discount.tier.search</field>
+        <field name="model">vantage.discount.tier</field>
+        <field name="arch" type="xml">
+            <search string="Discount Tiers">
+                <field name="name"/>
+                <field name="code"/>
+                <filter name="filter_default" string="Default Tier" domain="[('is_default', '=', True)]"/>
+                <filter name="filter_archived" string="Archived" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_vantage_discount_tier" model="ir.actions.act_window">
+        <field name="name">Customer Discount Tiers</field>
+        <field name="res_model">vantage.discount.tier</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Define a customer discount tier</p>
+            <p>
+                Tiers replace hardcoded discount ceilings. Create as many as you need —
+                Bronze, Gold, Distributor, Government — and give each one its own ceiling,
+                per-category overrides, negotiation budget and manager approval limit.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_vantage_discount_tier"
+              name="Customer Discount Tiers"
+              parent="sale.menu_sale_config"
+              action="action_vantage_discount_tier"
+              sequence="25"/>
+
+    <!-- ===================== Sales Team Negotiation Budget ===================== -->
+    <record id="view_crm_team_form_inherit_vantage" model="ir.ui.view">
+        <field name="name">crm.team.form.inherit.vantage</field>
+        <field name="model">crm.team</field>
+        <field name="inherit_id" ref="sales_team.crm_team_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="vantage_max_negotiation_rounds"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

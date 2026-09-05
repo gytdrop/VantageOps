@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_order_form_inherit_vantage_core" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.vantage.core</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Header Badges & Risk Indicator -->
+            <xpath expr="//header" position="after">
+                <div class="alert alert-danger mb-0 text-center" role="alert" 
+                     invisible="blended_risk_score == 0 or risk_approval_state == 'approved'">
+                    <strong>⚠️ High-Risk Deal Detected:</strong> Blended Risk Score is 
+                    <strong><field name="blended_risk_score" readonly="1"/></strong>. 
+                    Commercial approval required before confirmation.
+                </div>
+                <div class="alert alert-info mb-0 text-center" role="alert" 
+                     invisible="is_recurring_hybrid == False">
+                    <strong>🔄 Hybrid Deal:</strong> Contains both one-time products and recurring subscription contracts.
+                </div>
+            </xpath>
+
+            <!-- Status Indicator in Sheet -->
+            <xpath expr="//field[@name='payment_term_id']" position="after">
+                <field name="blended_risk_score" readonly="1" widget="badge"
+                       decoration-danger="blended_risk_score &gt; 10"
+                       decoration-warning="blended_risk_score &gt; 0 and blended_risk_score &lt;= 10"
+                       decoration-success="blended_risk_score == 0"/>
+                <field name="risk_approval_state" widget="badge"
+                       decoration-info="risk_approval_state == 'draft'"
+                       decoration-warning="risk_approval_state == 'pending_approval'"
+                       decoration-success="risk_approval_state == 'approved'"
+                       decoration-danger="risk_approval_state == 'rejected'"/>
+                <field name="is_recurring_hybrid" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Product Template: Subscription Cadence Configuration -->
+    <record id="view_product_template_form_inherit_vantage_core" model="ir.ui.view">
+        <field name="name">product.template.form.inherit.vantage.core</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='sales']/group[@name='sale']" position="inside">
+                <group string="VantageOps Recurring Billing" name="vantage_subscription">
+                    <field name="vantage_is_subscription"/>
+                    <field name="vantage_billing_cadence" invisible="not vantage_is_subscription"/>
+                    <field name="vantage_contract_months" invisible="not vantage_is_subscription"/>
+                    <field name="vantage_price_basis" invisible="not vantage_is_subscription"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

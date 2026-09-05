@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_order_form_inherit_vantage_fulfillment" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.vantage.fulfillment</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Header Action Buttons -->
+            <xpath expr="//header" position="inside">
+                <button name="action_split_fulfillments" string="Auto-Split Warehouses" type="object" class="btn-secondary"
+                        invisible="has_split_requirement == False or state not in ('draft', 'sent')"/>
+                <button name="action_consolidate_backorders" string="Consolidate Backorders" type="object" class="btn-secondary"
+                        invisible="has_split_children == False or state not in ('draft', 'sent')"/>
+                <button name="action_generate_billing_schedule" string="Generate Billing Schedule" type="object" class="btn-secondary"
+                        invisible="state not in ('draft', 'sent')"/>
+                <button name="action_open_proration_wizard" string="Mid-Cycle Change" type="object" class="btn-secondary"
+                        invisible="not is_recurring_hybrid and billing_schedule_count == 0"/>
+            </xpath>
+
+            <!-- Sheet Header Alert for Deficits -->
+            <xpath expr="//header" position="after">
+                <div class="alert alert-warning mb-0 text-center" role="alert" 
+                     invisible="has_split_requirement == False">
+                    <strong>📦 Inventory Deficit Detected:</strong> Primary warehouse stock is insufficient. Click 
+                    <strong>"Auto-Split Warehouses"</strong> to allocate across regional depots.
+                </div>
+                <div class="alert alert-info mb-0 text-center" role="alert" 
+                     invisible="has_split_children == False">
+                    <strong>🚚 Split Fulfillment Active:</strong> Quotation lines are distributed across multiple warehouses. Click 
+                    <strong>"Consolidate Backorders"</strong> if inventory has arrived at the primary depot.
+                </div>
+            </xpath>
+
+            <!-- Line tree view extension: Margin Delta & Warehouse -->
+            <xpath expr="//field[@name='order_line']/tree/field[@name='price_subtotal']" position="after">
+                <field name="margin_delta" string="Margin ($)" optional="show"/>
+                <field name="free_qty_today" string="Free Stock" optional="show"/>
+                <field name="network_free_qty" string="Network Stock" optional="hide"/>
+                <field name="deficit_qty" string="Deficit" optional="show"/>
+                <field name="requires_split" optional="hide"/>
+                <field name="fulfillment_warehouse_id" optional="show"/>
+                <field name="is_subscription_item" column_invisible="True"/>
+                <field name="billing_cadence" string="Cadence" optional="hide"/>
+                <field name="contract_months" string="Contract (m)" optional="hide"/>
+                <field name="subscription_start_date" string="Service Start" optional="hide"/>
+                <field name="subscription_price_basis" string="Price Basis" optional="hide"/>
+            </xpath>
+
+
+            <!-- Fulfillment Notebook Pages -->
+            <xpath expr="//page[@name='order_lines']" position="after">
+                <page name="page_ashrith_fulfillment" string="Fulfillment &amp; Warehouses">
+                    <div class="alert alert-info" role="status">
+                        <field name="fulfillment_split_summary" readonly="1"/>
+                    </div>
+                    <group>
+                        <group string="Multi-Depot Cost Weighting &amp; Routing">
+                            <field name="has_split_requirement" readonly="1"/>
+                            <field name="has_split_children" readonly="1"/>
+                            <field name="secondary_warehouse_id" options="{'no_create': True}"/>
+                        </group>
+                        <group string="Logistics &amp; Shipping Metrics">
+                            <field name="estimated_shipment_count" readonly="1"/>
+                            <field name="estimated_shipping_cost" widget="monetary" readonly="1"/>
+                            <field name="fulfillment_shortfall_qty" readonly="1"
+                                   invisible="fulfillment_shortfall_qty == 0"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <separator string="N-Way Depot Allocation Plan"/>
+                    <field name="fulfillment_plan_html" readonly="1" nolabel="1"/>
+                    <div class="mt-2">
+                        <button name="action_split_fulfillments" string="Accept Suggested Split" type="object" class="btn btn-primary me-2"
+                                invisible="has_split_requirement == False or state not in ('draft', 'sent')"/>
+                        <button name="action_consolidate_backorders" string="Consolidate Remaining Backorders" type="object" class="btn btn-outline-secondary"
+                                invisible="has_split_children == False or state not in ('draft', 'sent')"/>
+                    </div>
+                </page>
+                <page name="page_billing_schedule" string="Hybrid Billing Schedule">
+                    <div class="alert alert-info" role="status" invisible="billing_schedule_count &gt; 0">
+                        <strong>💡 Hybrid Billing:</strong> Click <strong>"Generate Billing Schedule"</strong> in the header to separate
+                        one-time hardware charges from the recurring cycles. Each subscription line bills at its own cadence
+                        (monthly, quarterly, semi-annual or annual); calendar-aligned contracts prorate partial cycles on exact days.
+                    </div>
+                    <group>
+                        <group string="Subscription Cycle Configuration">
+                            <field name="subscription_anchor"/>
+                            <field name="is_recurring_hybrid" readonly="1"/>
+                        </group>
+                    </group>
+                    <field name="billing_schedule_count" invisible="1"/>
+                    <field name="billing_schedule_ids" invisible="billing_schedule_count == 0">
+                        <tree editable="bottom" decoration-info="billing_type == 'one_time'"
+                              decoration-muted="state == 'cancelled'" decoration-success="state == 'invoiced'">
+                            <field name="sequence" widget="handle"/>
+                            <field name="billing_date"/>
+                            <field name="billing_type" widget="badge" decoration-warning="billing_type == 'one_time'"
+                                   decoration-info="billing_type == 'recurring'" decoration-danger="billing_type == 'proration'"/>
+                            <field name="cadence" optional="show"/>
+                            <field name="description"/>
+                            <field name="period_start" optional="hide"/>
+                            <field name="period_end" optional="hide"/>
+                            <field name="is_prorated" widget="boolean_toggle" optional="show"/>
+                            <field name="proration_factor" optional="hide" digits="[12,4]"/>
+                            <field name="amount" widget="monetary"/>
+                            <field name="currency_id" column_invisible="True"/>
+                            <field name="state" widget="badge" decoration-success="state == 'invoiced'" decoration-muted="state == 'scheduled'"/>
+                            <button name="action_mark_invoiced" type="object" string="Mark Invoiced" icon="fa-check" invisible="state == 'invoiced'"/>
+                        </tree>
+                    </field>
+                    <div class="mt-2">
+                        <button name="action_open_proration_wizard" string="📐 Mid-Cycle Seat Change" type="object"
+                                class="btn btn-outline-primary"/>
+                    </div>
+                </page>
+                <page name="page_smart_upsell" string="Smart Upsells">
+                    <div class="alert alert-info" role="status">
+                        <strong>🚀 Live Upsell Engine:</strong> Complementary product pairings detected based on items in quotation. Click <strong>"Add to Quote"</strong> to attach high-margin recommendations.
+                    </div>
+                    <field name="available_upsell_ids" context="{'active_id': id}">
+                        <tree create="false" edit="false">
+                            <field name="promoted_tag" widget="badge" decoration-info="1"/>
+                            <field name="source_product_id"/>
+                            <field name="recommended_product_id"/>
+                            <field name="margin_contribution" widget="monetary" string="Profit Impact"/>
+                            <field name="currency_id" column_invisible="True"/>
+                            <button name="action_apply_upsell" type="object" string="Add to Quote" class="btn-primary" icon="fa-plus"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+
+            <!-- Optional Products View Extension -->
+            <xpath expr="//field[@name='sale_order_option_ids']/tree/field[@name='price_unit']" position="after">
+                <field name="margin_delta" string="Margin ($)" optional="show" widget="monetary"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Smart Upsell Rules View & Menu -->
+    <record id="view_vantage_upsell_rule_tree" model="ir.ui.view">
+        <field name="name">vantage.upsell.rule.tree</field>
+        <field name="model">vantage.upsell.rule</field>
+        <field name="arch" type="xml">
+            <tree string="Upsell Rules" editable="bottom">
+                <field name="name"/>
+                <field name="source_product_id"/>
+                <field name="recommended_product_id"/>
+                <field name="margin_contribution" widget="monetary" string="Est. Profit Impact"/>
+                <field name="promoted_tag"/>
+                <field name="currency_id" column_invisible="True"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_vantage_upsell_rules" model="ir.actions.act_window">
+        <field name="name">Smart Upsell Rules</field>
+        <field name="res_model">vantage.upsell.rule</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Stock Warehouse Form View Extension: Shipping Cost Weighting -->
+    <record id="view_warehouse_inherit_vantage_fulfillment" model="ir.ui.view">
+        <field name="name">stock.warehouse.inherit.vantage.fulfillment</field>
+        <field name="model">stock.warehouse</field>
+        <field name="inherit_id" ref="stock.view_warehouse"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="VantageOps Logistics" name="page_vantage_logistics">
+                    <group>
+                        <group string="Cost Weighting (DealFlow360)">
+                            <field name="base_shipping_cost"/>
+                            <field name="shipping_cost_weight"/>
+                            <field name="vantage_effective_ship_cost" readonly="1"/>
+                        </group>
+                        <group string="N-Way Allocation Participation">
+                            <field name="vantage_allow_split_source"/>
+                            <field name="vantage_split_priority"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+    <menuitem id="menu_vantage_upsell_rules"
+              name="Upsell Rules"
+              parent="sale.product_menu_catalog"
+              action="action_vantage_upsell_rules"
+              sequence="40"/>
+</odoo>
