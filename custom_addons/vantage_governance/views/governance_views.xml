@@ -1,34 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Sale Order Form Inheritance -->
     <record id="view_order_form_inherit_vantage_governance" model="ir.ui.view">
         <field name="name">sale.order.form.inherit.vantage.governance</field>
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
-            <!-- Manager Approval / Rejection Buttons in Header -->
+            <!-- Two-Tier Approval Buttons & Rep Nudge in Header -->
             <xpath expr="//header" position="inside">
-                <button name="action_manager_approve" string="Director Approve" type="object" class="btn-success"
-                        invisible="risk_approval_state != 'pending_approval'"/>
+                <button name="action_manager_approve" string="Manager Approve" type="object" class="btn-success"
+                        invisible="risk_approval_state != 'pending_manager'"/>
+                <button name="action_finance_approve" string="Finance Approve" type="object" class="btn-primary"
+                        invisible="risk_approval_state != 'pending_finance'"/>
                 <button name="action_manager_reject" string="Reject Deal" type="object" class="btn-danger"
-                        invisible="risk_approval_state != 'pending_approval'"/>
+                        invisible="risk_approval_state not in ('pending_manager', 'pending_finance')"/>
+                <button name="action_nudge_rep" string="Nudge Rep" type="object" class="btn-warning"
+                        invisible="deal_health != 'stalled'"/>
             </xpath>
 
             <!-- Governance Notebook Page -->
             <xpath expr="//notebook" position="inside">
                 <page name="page_akthar_approvals" string="Risk &amp; Approvals">
                     <group>
-                        <group string="Commercial Governance">
+                        <group string="Commercial Governance &amp; Two-Tier Approvals">
                             <field name="blended_risk_score" readonly="1"/>
-                            <field name="risk_approval_state" readonly="1"/>
+                            <field name="risk_approval_state" widget="badge"
+                                   decoration-info="risk_approval_state == 'draft'"
+                                   decoration-warning="risk_approval_state == 'pending_manager'"
+                                   decoration-danger="risk_approval_state in ('pending_finance', 'rejected')"
+                                   decoration-success="risk_approval_state == 'approved'"/>
+                            <field name="deal_health" widget="badge"
+                                   decoration-success="deal_health == 'healthy'"
+                                   decoration-warning="deal_health == 'stalled'"
+                                   decoration-danger="deal_health == 'margin_bleed'"/>
+                            <field name="days_inactive" readonly="1"/>
+                            <field name="discount_anomaly" readonly="1"/>
+                        </group>
+                        <group string="Customer Negotiation Activity &amp; Circuit Breaker">
                             <field name="negotiation_rounds" readonly="1"/>
                             <field name="max_negotiation_rounds"/>
                             <field name="is_negotiation_locked" readonly="1"/>
-                        </group>
-                        <group string="Customer Negotiation Activity">
                             <field name="last_counter_offer" readonly="1"/>
                         </group>
                     </group>
                 </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Partner Form Inheritance: Customer Tiers -->
+    <record id="view_partner_form_inherit_vantage" model="ir.ui.view">
+        <field name="name">res.partner.form.inherit.vantage</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='vat']" position="after">
+                <field name="customer_tier" widget="badge"
+                       decoration-info="customer_tier == 'bronze'"
+                       decoration-warning="customer_tier == 'silver'"
+                       decoration-success="customer_tier == 'gold'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Quotation Tree View Inheritance: Deal Health & Approval Badges -->
+    <record id="view_quotation_tree_inherit_vantage" model="ir.ui.view">
+        <field name="name">sale.order.tree.inherit.vantage</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_quotation_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='state']" position="before">
+                <field name="blended_risk_score" string="Risk" widget="badge" optional="show"
+                       decoration-success="blended_risk_score == 0"
+                       decoration-warning="blended_risk_score &gt; 0 and blended_risk_score &lt;= 10"
+                       decoration-danger="blended_risk_score &gt; 10"/>
+                <field name="risk_approval_state" string="Approval" widget="badge" optional="show"
+                       decoration-info="risk_approval_state == 'draft'"
+                       decoration-warning="risk_approval_state == 'pending_manager'"
+                       decoration-danger="risk_approval_state in ('pending_finance', 'rejected')"
+                       decoration-success="risk_approval_state == 'approved'"/>
+                <field name="deal_health" string="Deal Health" widget="badge" optional="show"
+                       decoration-success="deal_health == 'healthy'"
+                       decoration-warning="deal_health == 'stalled'"
+                       decoration-danger="deal_health == 'margin_bleed'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Sales Order Search View Inheritance: Filters for Deal Health & Approvals -->
+    <record id="view_sales_order_filter_inherit_vantage" model="ir.ui.view">
+        <field name="name">sale.order.search.inherit.vantage</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
+                <separator/>
+                <filter name="filter_pending_manager" string="⚠️ Pending Manager" 
+                        domain="[('risk_approval_state', '=', 'pending_manager')]"/>
+                <filter name="filter_pending_finance" string="🏛️ Pending Finance" 
+                        domain="[('risk_approval_state', '=', 'pending_finance')]"/>
+                <filter name="filter_stalled_deals" string="⏳ Stalled Deals (&gt;3 Days)" 
+                        domain="[('deal_health', '=', 'stalled')]"/>
+                <filter name="filter_margin_bleed" string="🚨 Critical Margin Bleed" 
+                        domain="[('deal_health', '=', 'margin_bleed')]"/>
+                <filter name="filter_discount_anomaly" string="📊 Discount Anomalies" 
+                        domain="[('discount_anomaly', '=', True)]"/>
             </xpath>
         </field>
     </record>

@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_vantage_billing_schedule,access_vantage_billing_schedule,model_vantage_billing_schedule,base.group_user,1,1,1,1
+access_vantage_upsell_rule,access_vantage_upsell_rule,model_vantage_upsell_rule,base.group_user,1,1,1,1

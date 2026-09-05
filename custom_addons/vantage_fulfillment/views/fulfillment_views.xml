@@ -5,10 +5,12 @@
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
-            <!-- Header Split Action Button -->
+            <!-- Header Action Buttons -->
             <xpath expr="//header" position="inside">
                 <button name="action_split_fulfillments" string="Auto-Split Warehouses" type="object" class="btn-secondary"
                         invisible="has_split_requirement == False or state not in ('draft', 'sent')"/>
+                <button name="action_generate_billing_schedule" string="Generate Billing Schedule" type="object" class="btn-secondary"
+                        invisible="state not in ('draft', 'sent')"/>
             </xpath>
 
             <!-- Sheet Header Alert for Deficits -->
@@ -29,7 +31,8 @@
                 <field name="fulfillment_warehouse_id" optional="show"/>
             </xpath>
 
-            <!-- Fulfillment Notebook Page -->
+
+            <!-- Fulfillment Notebook Pages -->
             <xpath expr="//notebook" position="inside">
                 <page name="page_ashrith_fulfillment" string="Fulfillment &amp; Warehouses">
                     <group>
@@ -39,6 +42,44 @@
                         </group>
                     </group>
                 </page>
+                <page name="page_billing_schedule" string="Hybrid Billing Schedule">
+                    <div class="alert alert-info" role="status" invisible="billing_schedule_count &gt; 0">
+                        <strong>💡 Hybrid Billing:</strong> Click <strong>"Generate Billing Schedule"</strong> in the header to autonomously separate one-time hardware charges from 12 recurring subscription cycles.
+                    </div>
+                    <field name="billing_schedule_count" invisible="1"/>
+                    <field name="billing_schedule_ids" invisible="billing_schedule_count == 0">
+                        <tree editable="bottom" decoration-info="billing_type == 'one_time'" decoration-success="state == 'invoiced'">
+                            <field name="sequence" widget="handle"/>
+                            <field name="billing_date"/>
+                            <field name="billing_type" widget="badge" decoration-warning="billing_type == 'one_time'" decoration-info="billing_type == 'recurring'"/>
+                            <field name="description"/>
+                            <field name="amount" widget="monetary"/>
+                            <field name="currency_id" column_invisible="True"/>
+                            <field name="state" widget="badge" decoration-success="state == 'invoiced'" decoration-muted="state == 'scheduled'"/>
+                            <button name="action_mark_invoiced" type="object" string="Mark Invoiced" icon="fa-check" invisible="state == 'invoiced'"/>
+                        </tree>
+                    </field>
+                </page>
+                <page name="page_smart_upsell" string="Smart Upsells">
+                    <div class="alert alert-info" role="status">
+                        <strong>🚀 Live Upsell Engine:</strong> Complementary product pairings detected based on items in quotation. Click <strong>"Add to Quote"</strong> to attach high-margin recommendations.
+                    </div>
+                    <field name="available_upsell_ids" context="{'active_id': id}">
+                        <tree create="false" edit="false">
+                            <field name="promoted_tag" widget="badge" decoration-info="1"/>
+                            <field name="source_product_id"/>
+                            <field name="recommended_product_id"/>
+                            <field name="margin_contribution" widget="monetary" string="Profit Impact"/>
+                            <field name="currency_id" column_invisible="True"/>
+                            <button name="action_apply_upsell" type="object" string="Add to Quote" class="btn-primary" icon="fa-plus"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+
+            <!-- Optional Products View Extension -->
+            <xpath expr="//field[@name='sale_order_option_ids']/tree/field[@name='price_unit']" position="after">
+                <field name="margin_delta" string="Margin ($)" optional="show" widget="monetary"/>
             </xpath>
 
             <!-- Optional Products View Extension -->
@@ -46,5 +87,34 @@
                 <field name="margin_delta" string="Margin ($)" optional="show" widget="monetary"/>
             </xpath>
         </field>
+
     </record>
+
+    <!-- Smart Upsell Rules View & Menu -->
+    <record id="view_vantage_upsell_rule_tree" model="ir.ui.view">
+        <field name="name">vantage.upsell.rule.tree</field>
+        <field name="model">vantage.upsell.rule</field>
+        <field name="arch" type="xml">
+            <tree string="Upsell Rules" editable="bottom">
+                <field name="name"/>
+                <field name="source_product_id"/>
+                <field name="recommended_product_id"/>
+                <field name="margin_contribution" widget="monetary" string="Est. Profit Impact"/>
+                <field name="promoted_tag"/>
+                <field name="currency_id" column_invisible="True"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_vantage_upsell_rules" model="ir.actions.act_window">
+        <field name="name">Smart Upsell Rules</field>
+        <field name="res_model">vantage.upsell.rule</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_vantage_upsell_rules"
+              name="Upsell Rules"
+              parent="sale.product_menu_catalog"
+              action="action_vantage_upsell_rules"
+              sequence="40"/>
 </odoo>

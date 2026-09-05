@@ -6,6 +6,7 @@
     'author': 'Ashrith',
     'depends': ['vantage_core', 'sale_stock'],
     'data': [
+        'security/ir.model.access.csv',
         'views/fulfillment_views.xml',
     ],
     'installable': True,

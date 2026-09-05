@@ -1,3 +1,4 @@
+from datetime import timedelta
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 
@@ -16,14 +17,93 @@ class SaleOrder(models.Model):
         help="Alternative warehouse used to fulfill inventory deficits."
     )
 
+    # --- Hybrid Billing Schedule Engine ---
+    billing_schedule_ids = fields.One2many(
+        'vantage.billing.schedule',
+        'order_id',
+        string='Billing Schedules'
+    )
+    billing_schedule_count = fields.Integer(
+        string='Billing Schedule Count',
+        compute='_compute_billing_schedule_count'
+    )
+
+    # --- Smart Upsell Recommendations ---
+    available_upsell_ids = fields.Many2many(
+        'vantage.upsell.rule',
+        string='Recommended Upsells',
+        compute='_compute_available_upsells'
+    )
+
     @api.depends('order_line.product_uom_qty', 'order_line.product_id', 'warehouse_id')
     def _compute_split_requirement(self):
-        """Task 1: Check available free stock vs requested qty"""
+        """Check available free stock vs requested qty"""
         for order in self:
             order.has_split_requirement = any(line.requires_split for line in order.order_line)
 
+    @api.depends('billing_schedule_ids')
+    def _compute_billing_schedule_count(self):
+        for order in self:
+            order.billing_schedule_count = len(order.billing_schedule_ids)
+
+    @api.depends('order_line.product_id')
+    def _compute_available_upsells(self):
+        rule_obj = self.env['vantage.upsell.rule']
+        for order in self:
+            prod_ids = order.order_line.mapped('product_id').ids
+            matching_rules = rule_obj.search([
+                ('source_product_id', 'in', prod_ids),
+                ('recommended_product_id', 'not in', prod_ids)
+            ])
+            order.available_upsell_ids = matching_rules
+
+    def action_generate_billing_schedule(self):
+        """Autonomously separates one-time hardware from recurring subscription schedules"""
+        self.ensure_one()
+        # Remove un-invoiced schedules
+        self.billing_schedule_ids.filtered(lambda s: s.state == 'scheduled').unlink()
+
+        one_time_total = sum(l.price_subtotal for l in self.order_line if not l.is_subscription_item)
+        sub_lines = self.order_line.filtered(lambda l: l.is_subscription_item)
+        recurring_monthly = sum(l.price_subtotal for l in sub_lines)
+
+        today = fields.Date.context_today(self)
+        schedules = []
+        seq = 1
+
+        # 1. One-Time Hardware / Implementation Invoice
+        if one_time_total > 0 or not sub_lines:
+            schedules.append({
+                'order_id': self.id,
+                'sequence': seq,
+                'billing_date': today,
+                'description': 'Initial Delivery & Hardware / Setup Charges',
+                'amount': one_time_total if one_time_total > 0 else self.amount_untaxed,
+                'billing_type': 'one_time',
+                'state': 'scheduled'
+            })
+            seq += 1
+
+        # 2. Recurring Subscription Installments (12 Monthly Cycles)
+        if recurring_monthly > 0:
+            for month in range(1, 13):
+                inv_date = today + timedelta(days=30 * month)
+                schedules.append({
+                    'order_id': self.id,
+                    'sequence': seq,
+                    'billing_date': inv_date,
+                    'description': f'Recurring SaaS Subscription (Cycle {month} of 12)',
+                    'amount': round(recurring_monthly / 12.0, 2) if recurring_monthly > 100 else recurring_monthly,
+                    'billing_type': 'recurring',
+                    'state': 'scheduled'
+                })
+                seq += 1
+
+        self.env['vantage.billing.schedule'].create(schedules)
+        self.message_post(body=f"📅 <strong>Hybrid Billing Schedule Generated:</strong> Created {len(schedules)} installment periods (One-time: ${one_time_total:,.2f}, Recurring: ${recurring_monthly:,.2f}).")
+
     def action_split_fulfillments(self):
-        """Task 2: Autonomously split lines with deficits into secondary warehouse lines"""
+        """Autonomously split lines with deficits into secondary warehouse lines"""
         for order in self:
             lines_to_split = order.order_line.filtered(
                 lambda l: l.requires_split and not l.is_split_child and l.product_id.type == 'product'
@@ -39,12 +119,10 @@ class SaleOrder(models.Model):
                 deficit = line.product_uom_qty - avail_qty
 
                 if deficit > 0:
-                    # Truncate primary line to available stock if any, or keep original if 0
                     if avail_qty > 0:
                         line.product_uom_qty = avail_qty
                         line.is_split_parent = True
 
-                        # Fork deficit line to secondary warehouse
                         order.order_line.create({
                             'order_id': order.id,
                             'product_id': line.product_id.id,
@@ -143,6 +221,6 @@ class SaleOrderOption(models.Model):
     def _compute_margin_delta(self):
         for option in self:
             cost = option.product_id.standard_price * option.quantity if option.product_id else 0.0
-            # Price after discount
             price_subtotal = option.price_unit * option.quantity * (1 - (option.discount or 0.0) / 100.0)
             option.margin_delta = round(price_subtotal - cost, 2)
+
