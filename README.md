@@ -6,7 +6,7 @@ VantageOps is an integrated, modular Odoo application suite engineered to protec
 
 ---
 
-## 🏗️ Architecture & Module Suite
+## Architecture & Module Suite
 
 VantageOps extends native Odoo models (`sale.order`, `sale.order.line`, `stock.picking`, and `portal`) cleanly without altering core code:
 
@@ -41,14 +41,14 @@ custom_addons/
 
 ---
 
-## 📊 Complete Data Schema & ERD
+## Complete Data Schema & ERD
 
 For detailed entity relationship diagrams, model specifications, field dictionaries, and security access matrices, please inspect:
 👉 **[SCHEMA.md](SCHEMA.md)**
 
 ---
 
-## 🚀 Fast Setup & Deployment Options
+## Fast Setup & Deployment Options
 
 VantageOps contains enterprise Python business logic, cost-optimization algorithms, and WebSocket controllers. Below are the 3 deployment options:
 
@@ -100,7 +100,7 @@ docker run -d -p 8069:8069 --name vantageops \
 
 ---
 
-## ⚙️ Configuration Surface
+## Configuration Surface
 
 Every commercial threshold is administrator-editable — nothing is hardcoded.
 
@@ -122,7 +122,7 @@ existing quotations need an explicit recompute.
 
 ---
 
-## 🔒 Security & Code Standards
+## Security & Code Standards
 
 * **Native Model Inheritance**: Built exclusively with `_inherit` on native models to guarantee standard upgrade paths and database compatibility.
 * **Security Access Control**: Standard Odoo security access matrix mapped via `security/ir.model.access.csv` for custom schedule and upsell models.
@@ -131,5 +131,5 @@ existing quotations need an explicit recompute.
 
 ---
 
-## 📄 License
+## License
 This project is licensed under the [LGPL-3](https://www.gnu.org/licenses/lgpl-3.0.en.html) license.
