@@ -14,18 +14,22 @@ class VantageCustomerPortal(CustomerPortal):
             ('state', 'in', ['draft', 'sent'])
         ]
 
-    @http.route(['/my/orders/<int:order_id>/counter_offer'], type='http', auth="public", methods=['POST'], website=True, csrf=False)
-    def portal_order_counter_offer(self, order_id, line_id=None, counter_discount=0.0, notes="", access_token=None, **post):
-        order_sudo = request.env['sale.order'].sudo().browse(order_id)
+    @http.route(['/my/orders/<int:order_id>/counter_offer', '/vantage/portal/counter_offer'], type='http', auth="public", methods=['POST'], website=True, csrf=False)
+    def portal_order_counter_offer(self, order_id=None, line_id=None, counter_discount=0.0, notes="", counter_note=None, access_token=None, **post):
+        target_id = order_id or post.get('order_id')
+        if not target_id:
+            return request.redirect('/my')
+        order_sudo = request.env['sale.order'].sudo().browse(int(target_id))
         if not order_sudo.exists():
             return request.redirect('/my')
 
         try:
             discount_val = float(counter_discount)
+            note_val = counter_note or notes or post.get('notes') or ""
             order_sudo.action_customer_counter_offer(
                 line_id=line_id,
                 counter_discount=discount_val,
-                notes=notes
+                notes=note_val
             )
             request.session['portal_success'] = f"Counter-offer of {discount_val}% submitted successfully! VantageOps governance engine re-evaluated deal risk."
         except Exception as e:

@@ -1,0 +1,128 @@
+/* ==========================================================================
+   VantageOps Governance Pipeline - Per-Column Independent Scroll Container
+   ========================================================================== */
+
+/* 1. Prevent vertical scroll of the entire viewport/content */
+.o_kanban_view:has(.o_vantage_kanban_card),
+.o_view_controller:has(.o_vantage_kanban_card) {
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+
+    .o_content {
+        height: 100% !important;
+        max-height: 100% !important;
+        min-height: 0 !important;
+        overflow-y: hidden !important;
+        overflow-x: auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+}
+
+/* 2. Board canvas: fits screen, only scrolls horizontally if columns overflow */
+.o_kanban_renderer.o_kanban_grouped.o_vantage_kanban_pipeline,
+.o_kanban_renderer.o_kanban_grouped:has(.o_vantage_kanban_card) {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    overflow-y: hidden !important;
+    overflow-x: auto !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    padding: 14px 16px !important;
+    gap: 16px !important;
+    box-sizing: border-box !important;
+    background-color: #f1f5f9 !important;
+}
+
+/* 3. Each stage column is an independent scrollable container */
+.o_kanban_renderer.o_kanban_grouped.o_vantage_kanban_pipeline .o_kanban_group,
+.o_kanban_renderer.o_kanban_grouped:has(.o_vantage_kanban_card) .o_kanban_group {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    background-color: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 10px !important;
+    padding: 0 10px 12px 10px !important;
+    margin-right: 0 !important;
+    flex: 0 0 285px !important;
+    min-width: 275px !important;
+    max-width: 320px !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #94a3b8 transparent !important;
+
+    &::-webkit-scrollbar {
+        width: 6px !important;
+    }
+    &::-webkit-scrollbar-track {
+        background: transparent !important;
+    }
+    &::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1 !important;
+        border-radius: 3px !important;
+        &:hover {
+            background-color: #94a3b8 !important;
+        }
+    }
+}
+
+/* 4. Column Header stays sticky at the top of that column */
+.o_kanban_renderer.o_kanban_grouped.o_vantage_kanban_pipeline .o_kanban_group:not(.o_column_folded) .o_kanban_header,
+.o_kanban_renderer.o_kanban_grouped:has(.o_vantage_kanban_card) .o_kanban_group:not(.o_column_folded) .o_kanban_header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    background-color: #f8fafc !important;
+    padding-top: 12px !important;
+    padding-bottom: 8px !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+    margin-bottom: 12px !important;
+    flex-shrink: 0 !important;
+}
+
+/* 5. Folded column behavior */
+.o_kanban_renderer.o_kanban_grouped.o_vantage_kanban_pipeline .o_kanban_group.o_column_folded,
+.o_kanban_renderer.o_kanban_grouped:has(.o_vantage_kanban_card) .o_kanban_group.o_column_folded {
+    flex: 0 0 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    overflow: hidden !important;
+    padding: 0 4px !important;
+    background-color: #f1f5f9 !important;
+}
+
+/* 6. Card stability */
+.o_kanban_renderer.o_kanban_grouped.o_vantage_kanban_pipeline .o_kanban_record,
+.o_kanban_renderer.o_kanban_grouped:has(.o_vantage_kanban_card) .o_kanban_record {
+    flex-shrink: 0 !important;
+    width: 100% !important;
+    margin-bottom: 8px !important;
+}
+
+.o_vantage_kanban_card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border: 1px solid #e2e8f0 !important;
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1) !important;
+        border-color: #cbd5e1 !important;
+    }
+}
+
+/* 7. Load more button at bottom of column */
+.o_kanban_renderer.o_kanban_grouped.o_vantage_kanban_pipeline .o_kanban_load_more,
+.o_kanban_renderer.o_kanban_grouped:has(.o_vantage_kanban_card) .o_kanban_load_more {
+    flex-shrink: 0 !important;
+    margin-top: 8px !important;
+    padding-bottom: 6px !important;
+}

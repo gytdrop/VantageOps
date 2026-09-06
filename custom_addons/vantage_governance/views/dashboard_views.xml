@@ -6,103 +6,444 @@
         <field name="model">vantage.sales.dashboard</field>
         <field name="arch" type="xml">
             <form string="Executive Sales Cockpit" create="false" edit="false" delete="false">
-                <!-- ⚡ Hides the native Odoo breadcrumb and control panel & makes sheet full width -->
+                <!-- ⚡ Hides the native Odoo breadcrumb and control panel and makes sheet full width -->
                 <style>
                     .o_control_panel { display: none !important; }
-                    .o_form_sheet_bg { max-width: 100% !important; padding: 0 !important; width: 100% !important; }
-                    .o_form_sheet { max-width: 100% !important; width: 100% !important; border: none !important; box-shadow: none !important; background: transparent !important; }
+                    .o_content { background-color: #f8fafc !important; }
+                    .o_form_view { background-color: #f8fafc !important; }
+                    .o_form_sheet_bg { max-width: 100% !important; padding: 0 !important; width: 100% !important; background-color: #f8fafc !important; }
+                    .o_form_sheet { max-width: 100% !important; width: 100% !important; border: none !important; box-shadow: none !important; background-color: #f8fafc !important; }
+                    
+                    /* Buttons styling */
+                    .vantage-btn-new-quote,
+                    .vantage-btn-new-quote.btn,
+                    .vantage-btn-new-quote.btn-secondary {
+                        background-color: #714B67 !important;
+                        background: #714B67 !important;
+                        border: 1px solid #5B3D53 !important;
+                        color: #ffffff !important;
+                    }
+                    .vantage-btn-new-quote:hover {
+                        background-color: #5B3D53 !important;
+                        background: #5B3D53 !important;
+                        color: #ffffff !important;
+                    }
+                    .vantage-btn-new-quote span,
+                    .vantage-btn-new-quote i {
+                        color: #ffffff !important;
+                    }
+
+                    .vantage-btn-approvals,
+                    .vantage-btn-approvals.btn,
+                    .vantage-btn-approvals.btn-secondary {
+                        background-color: #ffffff !important;
+                        background: #ffffff !important;
+                        border: 1px solid #94a3b8 !important;
+                        color: #0f172a !important;
+                    }
+                    .vantage-btn-approvals:hover {
+                        background-color: #f8fafc !important;
+                        background: #f8fafc !important;
+                        color: #0f172a !important;
+                    }
+                    .vantage-btn-approvals span {
+                        color: #0f172a !important;
+                    }
+                    /* 1. Card Containers: Clean Elevation and Subtle Borders */
+                    .o_vantage_dashboard .card, 
+                    .o_vantage_dashboard .o_vantage_card {
+                        background: #ffffff !important;
+                        border: 1px solid #e2e8f0 !important;
+                        border-radius: 10px !important;
+                        box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.05) !important;
+                        transition: box-shadow 0.2s ease, transform 0.2s ease;
+                    }
+                    .o_vantage_dashboard .card:hover,
+                    .o_vantage_dashboard .o_vantage_card:hover {
+                        box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04) !important;
+                    }
+
+                    /* 2. Top KPI Cards: High-Contrast Metrics */
+                    .o_vantage_dashboard .card-title, 
+                    .o_vantage_dashboard .kpi-label {
+                        font-size: 0.75rem !important;
+                        font-weight: 700 !important;
+                        letter-spacing: 0.05em !important;
+                        text-transform: uppercase !important;
+                        color: #64748b !important;
+                    }
+
+                    .o_vantage_dashboard .kpi-value {
+                        font-size: 2.25rem !important;
+                        font-weight: 800 !important;
+                        color: #0f172a !important;
+                        line-height: 1.1 !important;
+                        margin: 0.4rem 0 !important;
+                    }
+                    .o_vantage_dashboard .kpi-value.kpi-danger { color: #dc2626 !important; }
+                    .o_vantage_dashboard .kpi-value.kpi-success { color: #059669 !important; }
+
+                    .o_vantage_dashboard .kpi-subtext {
+                        font-size: 0.8rem !important;
+                        font-weight: 500 !important;
+                        color: #475569 !important;
+                    }
+
+                    /* 3. Strip Solid Pills from Table */
+                    .o_vantage_dashboard table th {
+                        font-size: 0.75rem !important;
+                        font-weight: 700 !important;
+                        letter-spacing: 0.05em !important;
+                        color: #475569 !important;
+                        border-bottom: 2px solid #e2e8f0 !important;
+                        padding-bottom: 0.75rem !important;
+                    }
+
+                    .o_vantage_dashboard table td {
+                        vertical-align: middle !important;
+                        padding: 0.85rem 0.5rem !important;
+                        color: #1e293b !important;
+                        font-size: 0.875rem !important;
+                        font-weight: 500 !important;
+                        border-bottom: 1px solid #f1f5f9 !important;
+                    }
+
+                    .o_vantage_dashboard .badge-tier, 
+                    .o_vantage_dashboard .badge {
+                        font-size: 0.75rem !important;
+                        font-weight: 600 !important;
+                        padding: 0.25rem 0.65rem !important;
+                        border-radius: 6px !important;
+                        display: inline-flex !important;
+                        align-items: center !important;
+                    }
+                    .o_vantage_dashboard .badge.tier-bronze { background: #fef3c7 !important; color: #92400e !important; border: 1px solid #fde68a !important; }
+                    .o_vantage_dashboard .badge.tier-silver { background: #f1f5f9 !important; color: #475569 !important; border: 1px solid #e2e8f0 !important; }
+                    .o_vantage_dashboard .badge.tier-gold   { background: #fef9c3 !important; color: #854d0e !important; border: 1px solid #fef08a !important; }
+
+                    .o_vantage_dashboard .badge.status-optimized { background: #ecfdf5 !important; color: #047857 !important; border: 1px solid #a7f3d0 !important; }
+                    .o_vantage_dashboard .badge.status-split     { background: #eff6ff !important; color: #1d4ed8 !important; border: 1px solid #bfdbfe !important; }
+                    .o_vantage_dashboard .badge.status-direct    { background: #f8fafc !important; color: #334155 !important; border: 1px solid #cbd5e1 !important; }
+
+                    /* 4. Streamlined Event Stream */
+                    .o_vantage_dashboard .event-item {
+                        padding: 0.75rem !important;
+                        border-radius: 8px !important;
+                        margin-bottom: 0.5rem !important;
+                        background: #f8fafc !important;
+                        border-left-width: 4px !important;
+                        border-top: 1px solid #e2e8f0 !important;
+                        border-right: 1px solid #e2e8f0 !important;
+                        border-bottom: 1px solid #e2e8f0 !important;
+                    }
+                    .o_vantage_dashboard .event-item .event-id {
+                        font-weight: 700 !important;
+                        color: #0f172a !important;
+                    }
+                    .o_vantage_dashboard .event-item .event-desc {
+                        font-size: 0.8rem !important;
+                        color: #475569 !important;
+                    }
+
+                    /* 5. Depot Progress Bars */
+                    .o_vantage_dashboard .depot-progress-track {
+                        height: 6px !important;
+                        background-color: #e2e8f0 !important;
+                        border-radius: 9999px !important;
+                        overflow: hidden !important;
+                        margin: 0.5rem 0 !important;
+                    }
+                    .o_vantage_dashboard .depot-progress-fill {
+                        height: 100% !important;
+                        border-radius: 9999px !important;
+                    }
+                    .o_vantage_dashboard .depot-progress-fill.primary   { background-color: #10b981 !important; }
+                    .o_vantage_dashboard .depot-progress-fill.secondary { background-color: #3b82f6 !important; }
+                    .o_vantage_dashboard .depot-progress-fill.reserve   { background-color: #f59e0b !important; }
                 </style>
                 <sheet>
-                    <div class="container-fluid mt-3 mb-5">
-                        <!-- Header & Action Buttons -->
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <div>
-                                <h2 class="fw-bold mb-0 text-dark">Sales Dashboard / Home</h2>
-                                <p class="text-muted mb-0">Central hub, links out to every module below</p>
+                    <div class="o_vantage_dashboard p-4" style="background-color: #f8fafc; min-height: 100vh; color: #0f172a; font-family: system-ui, -apple-system, sans-serif;">
+                        
+                        <!-- Top Executive Header -->
+                        <div class="d-flex justify-content-between align-items-center mb-4 pb-3" style="border-bottom: 2px solid #e2e8f0;">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="d-flex align-items-center justify-content-center rounded-3 shadow-sm text-white" 
+                                     style="width: 48px; height: 48px; background: #714B67;">
+                                    <i class="fa fa-tachometer fs-4 text-white" title="Control Center"/>
+                                </div>
+                                <div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <h4 class="fw-bold mb-0" style="color: #0f172a !important; letter-spacing: -0.5px;">VantageOps Control Center</h4>
+                                        <span class="badge rounded px-2 py-1 text-white fw-bold" style="background-color: #714B67 !important; font-size: 0.7rem;">COMMAND CENTER</span>
+                                    </div>
+                                    <div class="small fw-semibold mt-1" style="color: #475569 !important;">
+                                        Autonomous Deal Governance, Margin Guardrails &amp; N-Way Multi-Depot Logistics
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <button type="object" name="action_load_turnkey_seed_data" class="btn btn-warning px-3 py-2 fw-bold shadow-sm me-2">
-                                    <i class="fa fa-bolt me-1"/>⚡ Load Turnkey Seed Data
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm fw-bold shadow-sm vantage-btn-approvals" type="object" name="action_view_approvals"
+                                        style="background: #ffffff !important; color: #0f172a !important; border: 1px solid #94a3b8 !important;">
+                                    <i class="fa fa-tasks me-1 text-primary" title="Approvals Queue"/> <span style="color: #0f172a !important;">Approvals Queue</span>
                                 </button>
-                                <button type="object" name="action_new_quotation" class="btn btn-primary px-4 py-2 fw-bold shadow-sm me-2">
-                                    <i class="fa fa-plus me-2"/>New Quotation
-                                </button>
-                                <button type="object" name="action_view_approvals" class="btn btn-outline-secondary px-4 py-2 fw-bold shadow-sm">
-                                    View Approvals
+                                <!-- Visible High-Contrast Purple Button -->
+                                <button class="btn btn-sm fw-bold shadow-sm text-white vantage-btn-new-quote" type="object" name="action_new_quotation"
+                                        style="background-color: #714B67 !important; background: #714B67 !important; border: 1px solid #5B3D53 !important; color: #ffffff !important;">
+                                    <i class="fa fa-plus me-1 text-white" title="New Quotation"/> <span style="color: #ffffff !important;">New Quotation</span>
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Colorful KPI Cards with Thick Border Accents -->
-                        <div class="row mb-5">
-                            <!-- Pending Approvals (Warning/Orange) -->
-                            <div class="col-md-4">
-                                <div class="p-4 bg-white rounded shadow-sm border-start border-warning border-5 h-100">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="fw-bold text-dark mb-0">Pending Approvals</h5>
-                                        <i class="fa fa-clock-o text-warning fs-3" title="Pending Approvals"/>
+                        <!-- Row 1: KPI Stat Cards -->
+                        <div class="row g-3 mb-4">
+                            <!-- Pending Approvals -->
+                            <div class="col-md-3">
+                                <div class="card p-3 h-100" style="border-left: 5px solid #d97706 !important;">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <span class="kpi-label">Pending Approvals</span>
+                                        <i class="fa fa-clock-o text-warning fs-5" title="Pending Approvals"/>
                                     </div>
-                                    <span class="badge rounded-pill text-bg-warning fs-6 px-3 py-2 text-dark shadow-sm">
-                                        <field name="total_pending_approvals" nolabel="1"/> Quotations Waiting
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            <!-- Open Quotations (Info/Teal) -->
-                            <div class="col-md-4">
-                                <div class="p-4 bg-white rounded shadow-sm border-start border-info border-5 h-100">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="fw-bold text-dark mb-0">Open Quotations</h5>
-                                        <i class="fa fa-folder-open-o text-info fs-3" title="Open Quotations"/>
+                                    <div class="d-flex align-items-baseline gap-2 mt-2">
+                                        <h2 class="kpi-value mb-0">
+                                            <field name="total_pending_approvals" readonly="1"/>
+                                        </h2>
                                     </div>
-                                    <span class="badge rounded-pill text-bg-info fs-6 px-3 py-2 shadow-sm">
-                                        <field name="draft_quotes_count" nolabel="1"/> Active Deals
-                                    </span>
+                                    <div class="kpi-subtext mt-1">Requires dual sign-off</div>
                                 </div>
                             </div>
 
-                            <!-- At-Risk Deals (Danger/Red) -->
-                            <div class="col-md-4">
-                                <div class="p-4 bg-white rounded shadow-sm border-start border-danger border-5 h-100">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="fw-bold text-dark mb-0">At-Risk Deals</h5>
-                                        <i class="fa fa-exclamation-triangle text-danger fs-3" title="At-Risk Deals"/>
+                            <!-- At-Risk Deals -->
+                            <div class="col-md-3">
+                                <div class="card p-3 h-100" style="border-left: 5px solid #dc2626 !important;">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <span class="kpi-label">At-Risk Deals</span>
+                                        <i class="fa fa-shield text-danger fs-5" title="At-Risk Deals"/>
                                     </div>
-                                    <span class="badge rounded-pill text-bg-danger fs-6 px-3 py-2 shadow-sm">
-                                        <field name="high_risk_deal_count" nolabel="1"/> Flagged by Deal Health
-                                    </span>
+                                    <div class="d-flex align-items-baseline gap-2 mt-2">
+                                        <h2 class="kpi-value kpi-danger mb-0">
+                                            <field name="high_risk_deal_count" readonly="1"/>
+                                        </h2>
+                                    </div>
+                                    <div class="kpi-subtext mt-1 text-danger">Exceeding margin floor</div>
+                                </div>
+                            </div>
+
+                            <!-- Active Deals -->
+                            <div class="col-md-3">
+                                <div class="card p-3 h-100" style="border-left: 5px solid #0284c7 !important;">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <span class="kpi-label">Active Deals</span>
+                                        <i class="fa fa-folder-open text-info fs-5" title="Active Deals"/>
+                                    </div>
+                                    <div class="d-flex align-items-baseline gap-2 mt-2">
+                                        <h2 class="kpi-value mb-0">
+                                            <field name="draft_quotes_count" readonly="1"/>
+                                        </h2>
+                                    </div>
+                                    <div class="kpi-subtext mt-1">Across all client tiers</div>
+                                </div>
+                            </div>
+
+                            <!-- Auto-Split Dispatches -->
+                            <div class="col-md-3">
+                                <div class="card p-3 h-100" style="border-left: 5px solid #059669 !important;">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <span class="kpi-label">Auto-Split Dispatches</span>
+                                        <i class="fa fa-truck text-success fs-5" title="Auto-Split Dispatches"/>
+                                    </div>
+                                    <div class="d-flex align-items-baseline gap-2 mt-2">
+                                        <h2 class="kpi-value kpi-success mb-0">94.2%</h2>
+                                    </div>
+                                    <div class="kpi-subtext mt-1">Zero backorder stall</div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Clean, Badge-Rich Activity Feed (Fixes raw HTML) -->
-                        <div class="bg-white p-4 rounded shadow-sm border">
-                            <h5 class="fw-bold text-dark mb-4">
-                                <i class="fa fa-bolt text-primary me-2" title="Activity Feed"/>Live Activity Feed
-                            </h5>
-                            
-                            <div class="d-flex align-items-center py-3 border-bottom">
-                                <span class="fw-bold text-dark me-3" style="width: 70px;">S00019</span>
-                                <span class="badge rounded-pill text-bg-danger me-3" style="width: 90px;">
-                                    <i class="fa fa-times me-1"/>Rejected
-                                </span>
-                                <span class="text-muted">by Mitchell Admin due to excessive margin bleed</span>
-                            </div>
-                            
-                            <div class="d-flex align-items-center py-3 border-bottom">
-                                <span class="fw-bold text-dark me-3" style="width: 70px;">S00039</span>
-                                <span class="badge rounded-pill text-bg-info me-3" style="width: 90px;">
-                                    <i class="fa fa-cogs me-1"/>Split
-                                </span>
-                                <span class="text-muted">VantageOps Fulfillment routed 2 line items to East Depot</span>
+                        <!-- Row 2: Analytics and Live Stream Split -->
+                        <div class="row g-3 mb-4">
+                            <!-- Left Panel: Table -->
+                            <div class="col-md-7">
+                                <div class="card p-3 h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2" style="border-bottom: 1px solid #e2e8f0;">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="fw-bold fs-6" style="color: #0f172a !important;">Fulfillment &amp; Governance Posture</span>
+                                            <span class="badge status-direct">Live Pipeline</span>
+                                        </div>
+                                        <span class="badge status-optimized">
+                                            ● Autonomous Interceptor Active
+                                        </span>
+                                    </div>
+
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>TIER / CATEGORY</th>
+                                                    <th class="text-center">ACTIVE VOLUME</th>
+                                                    <th class="text-center">INTERCEPTION RATE</th>
+                                                    <th class="text-end">FULFILLMENT STATUS</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <span class="badge tier-bronze">Bronze Accounts</span>
+                                                    </td>
+                                                    <td class="text-center fw-bold">11 Deals</td>
+                                                    <td class="text-center fw-bold text-danger">45.5% (High Risk)</td>
+                                                    <td class="text-end">
+                                                        <span class="badge status-optimized">Optimized</span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <span class="badge tier-silver">Silver Accounts</span>
+                                                    </td>
+                                                    <td class="text-center fw-bold">8 Deals</td>
+                                                    <td class="text-center fw-bold" style="color: #b45309 !important;">12.5% (Moderate)</td>
+                                                    <td class="text-end">
+                                                        <span class="badge status-split">Multi-Depot Split</span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <span class="badge tier-gold">Gold Enterprise</span>
+                                                    </td>
+                                                    <td class="text-center fw-bold">4 Deals</td>
+                                                    <td class="text-center fw-bold text-success">0.0% (Clean)</td>
+                                                    <td class="text-end">
+                                                        <span class="badge status-direct">Direct Allocation</span>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="d-flex align-items-center py-3 border-bottom">
-                                <span class="fw-bold text-dark me-3" style="width: 70px;">S00007</span>
-                                <span class="badge rounded-pill text-bg-success me-3" style="width: 90px;">
-                                    <i class="fa fa-check me-1"/>Approved
-                                </span>
-                                <span class="text-muted">Sales Manager sign-off completed and order converted</span>
+                            <!-- Right Panel: Live Feed -->
+                            <div class="col-md-5">
+                                <div class="card p-3 h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2" style="border-bottom: 1px solid #e2e8f0;">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="fa fa-bolt text-warning fs-5" title="Event Stream"/>
+                                            <span class="fw-bold fs-6" style="color: #0f172a !important;">Autonomous Event Stream</span>
+                                        </div>
+                                        <span class="badge status-optimized">Live Bus</span>
+                                    </div>
+
+                                    <div class="d-flex flex-column gap-2">
+                                        <div class="event-item" style="border-left-color: #dc2626 !important;">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="event-id">S00019</span>
+                                                <span class="badge" style="background: #fef2f2 !important; color: #dc2626 !important; border: 1px solid #fecaca !important;">Rejected</span>
+                                            </div>
+                                            <div class="event-desc mt-1">
+                                                Excessive margin bleed detected (50% discount on Bronze). Halted by Governor.
+                                            </div>
+                                        </div>
+
+                                        <div class="event-item" style="border-left-color: #0284c7 !important;">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="event-id">S00039</span>
+                                                <span class="badge status-split">Fulfillment Split</span>
+                                            </div>
+                                            <div class="event-desc mt-1">
+                                                Network deficit resolved: 2 line items routed to Secondary Depot.
+                                            </div>
+                                        </div>
+
+                                        <div class="event-item" style="border-left-color: #059669 !important;">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="event-id">S00007</span>
+                                                <span class="badge status-optimized">Dual-Approved</span>
+                                            </div>
+                                            <div class="event-desc mt-1">
+                                                Commercial sign-off completed by Finance Director. Committed to dispatch.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Depot Health Grid -->
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="card p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2" style="border-bottom: 1px solid #e2e8f0;">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="fa fa-cubes text-secondary fs-5" title="Warehouse Matrix"/>
+                                            <span class="fw-bold fs-6" style="color: #0f172a !important;">Real-Time Warehouse Stock &amp; Depot Health Matrix</span>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <span class="badge status-direct">Dynamic Multi-Depot Mesh</span>
+                                            <span class="badge status-optimized">● Engine Online</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-3">
+                                        <!-- Depot 1 -->
+                                        <div class="col-md-4">
+                                            <div class="p-3 rounded-3" style="background-color: #ffffff; border: 1px solid #e2e8f0;">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <span class="fw-bold text-dark">San Francisco (WH/Stock)</span>
+                                                    <span class="badge status-optimized">Primary Depot</span>
+                                                </div>
+                                                <div class="depot-progress-track">
+                                                    <div class="depot-progress-fill primary" style="width: 82%;"></div>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center small mt-2">
+                                                    <span class="fw-bold" style="color: #475569 !important;">Available: <strong style="color: #0f172a !important;">1,420 units</strong></span>
+                                                    <span class="kpi-subtext">Capacity: 82%</span>
+                                                </div>
+                                                <div class="kpi-subtext mt-1" style="font-size: 0.75rem !important;">
+                                                    Route: Direct Pick &amp; Pack • Latency: &lt;1.2h
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Depot 2 -->
+                                        <div class="col-md-4">
+                                            <div class="p-3 rounded-3" style="background-color: #ffffff; border: 1px solid #e2e8f0;">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <span class="fw-bold text-dark">Chicago Regional (WH2/Stock)</span>
+                                                    <span class="badge status-split">Secondary Depot</span>
+                                                </div>
+                                                <div class="depot-progress-track">
+                                                    <div class="depot-progress-fill secondary" style="width: 64%;"></div>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center small mt-2">
+                                                    <span class="fw-bold" style="color: #475569 !important;">Available: <strong style="color: #0f172a !important;">680 units</strong></span>
+                                                    <span class="kpi-subtext">Capacity: 64%</span>
+                                                </div>
+                                                <div class="kpi-subtext mt-1" style="font-size: 0.75rem !important;">
+                                                    Route: N-Way Auto-Forking Active • Latency: &lt;2.4h
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Depot 3 -->
+                                        <div class="col-md-4">
+                                            <div class="p-3 rounded-3" style="background-color: #ffffff; border: 1px solid #e2e8f0;">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <span class="fw-bold text-dark">Austin Hub (WH3/Stock)</span>
+                                                    <span class="badge tier-bronze">Reserve Depot</span>
+                                                </div>
+                                                <div class="depot-progress-track">
+                                                    <div class="depot-progress-fill reserve" style="width: 38%;"></div>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center small mt-2">
+                                                    <span class="fw-bold" style="color: #475569 !important;">Available: <strong style="color: #0f172a !important;">310 units</strong></span>
+                                                    <span class="kpi-subtext">Capacity: 38%</span>
+                                                </div>
+                                                <div class="kpi-subtext mt-1" style="font-size: 0.75rem !important;">
+                                                    Route: Cross-Dock Failover Ready • Latency: &lt;3.5h
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Dedicated 5-Stage Governance Pipeline Kanban View -->
+        <record id="view_vantage_sale_order_kanban_pipeline" model="ir.ui.view">
+            <field name="name">sale.order.kanban.vantage.pipeline</field>
+            <field name="model">sale.order</field>
+            <field name="priority">20</field>
+            <field name="arch" type="xml">
+                <kanban default_group_by="vantage_deal_stage" class="o_kanban_dashboard o_vantage_kanban_pipeline o_vantage_full_kanban" sample="1" records_draggable="false">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="amount_total"/>
+                    <field name="currency_id"/>
+                    <field name="blended_risk_score"/>
+                    <field name="risk_approval_state"/>
+                    <field name="vantage_deal_stage"/>
+                    <field name="partner_customer_tier_id"/>
+                    <templates>
+                        <t t-name="kanban-box">
+                            <div class="oe_kanban_card oe_kanban_global_click o_vantage_kanban_card p-3 rounded-3 bg-white shadow-sm mb-2" 
+                                 style="border: 1px solid #e2e8f0; border-radius: 8px;">
+                                
+                                <!-- Top Row: Customer & Risk Tag -->
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong class="text-dark fs-6" style="max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        <field name="partner_id"/>
+                                    </strong>
+                                    <t t-if="record.blended_risk_score and record.blended_risk_score.raw_value &gt; 0.0">
+                                        <span class="badge bg-danger-subtle text-danger fw-bold rounded-pill px-2 py-1" style="font-size: 0.7rem;">
+                                            RISK <t t-esc="record.blended_risk_score.value"/>
+                                        </span>
+                                    </t>
+                                    <t t-else="">
+                                        <span class="badge bg-success-subtle text-success fw-bold rounded-pill px-2 py-1" style="font-size: 0.7rem;">
+                                            CLEAN
+                                        </span>
+                                    </t>
+                                </div>
+
+                                <!-- Middle Row: Order Ref & Tier -->
+                                <div class="small text-muted mb-2" style="font-size: 0.75rem;">
+                                    <field name="name"/> • 
+                                    <t t-if="record.partner_customer_tier_id and record.partner_customer_tier_id.value">
+                                        <span t-esc="record.partner_customer_tier_id.value"/>
+                                    </t>
+                                    <t t-else="">
+                                        <span>TIER ACCOUNT</span>
+                                    </t>
+                                </div>
+
+                                <!-- Bottom Row: Price -->
+                                <div class="d-flex justify-content-between align-items-baseline pt-1 border-top" style="border-color: #f1f5f9 !important;">
+                                    <span class="fs-5 fw-bolder text-dark">
+                                        <field name="amount_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    </span>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
+        <!-- Quotations Pipeline Window Action (Tree sequence=1, Kanban sequence=2) -->
+        <record id="action_vantage_quotations_pipeline" model="ir.actions.act_window">
+            <field name="name">Quotations</field>
+            <field name="res_model">sale.order</field>
+            <field name="view_mode">tree,kanban,form,calendar,pivot,graph,activity</field>
+            <field name="view_ids" eval="[(5, 0, 0),
+                (0, 0, {'view_mode': 'tree', 'view_id': ref('sale.view_quotation_tree_with_onboarding'), 'sequence': 1}),
+                (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_vantage_sale_order_kanban_pipeline'), 'sequence': 2}),
+                (0, 0, {'view_mode': 'form', 'view_id': ref('sale.view_order_form'), 'sequence': 3})
+            ]"/>
+            <field name="context">{'search_default_my_quotation': 1, 'default_vantage_deal_stage': 'draft'}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">Create a new deal to initiate autonomous governance!</p>
+            </field>
+        </record>
+
+        <!-- Re-bind VantageOps Quotations Header Tab to our Action -->
+        <record id="vantage_core.menu_vantageops_quotations" model="ir.ui.menu">
+            <field name="action" ref="action_vantage_quotations_pipeline"/>
+        </record>
+
+        <!-- Also attach our Kanban view to sale.action_quotations_with_onboarding for fallback / direct URL access -->
+        <record id="vantage_act_window_view_quotation_kanban" model="ir.actions.act_window.view">
+            <field name="sequence" eval="2"/>
+            <field name="view_mode">kanban</field>
+            <field name="view_id" ref="view_vantage_sale_order_kanban_pipeline"/>
+            <field name="act_window_id" ref="sale.action_quotations_with_onboarding"/>
+        </record>
+
+        <!-- Simulation Button for Single-Screen Demo -->
+        <record id="view_order_form_inherit_vantage_simulation" model="ir.ui.view">
+            <field name="name">sale.order.form.inherit.vantage.simulation</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_order_form"/>
+            <field name="priority">30</field>
+            <field name="arch" type="xml">
+                <xpath expr="//header" position="inside">
+                    <button name="action_simulate_customer_counter"
+                            type="object"
+                            string="Simulate Customer Pitch"
+                            class="btn-outline-secondary btn-sm"
+                            groups="base.group_user"
+                            help="Simulate an incoming portal negotiation response for live demonstration."/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

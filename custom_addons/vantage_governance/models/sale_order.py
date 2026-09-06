@@ -1,3 +1,5 @@
+from markupsafe import Markup
+
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 
@@ -17,6 +19,7 @@ class SaleOrder(models.Model):
     )
 
     negotiation_rounds = fields.Integer(string='Negotiation Rounds', default=0, readonly=True)
+    negotiation_round = fields.Integer(string='Negotiation Round', related='negotiation_rounds', readonly=True)
     max_negotiation_rounds = fields.Integer(
         string='Max Negotiation Rounds',
         compute='_compute_max_negotiation_rounds',
@@ -32,6 +35,35 @@ class SaleOrder(models.Model):
         store=True
     )
     last_counter_offer = fields.Char(string='Last Counter-Offer Details', readonly=True)
+    vantage_deal_stage = fields.Selection([
+        ('draft', 'DRAFT'),
+        ('pending', 'PENDING APPROVAL'),
+        ('approved', 'APPROVED'),
+        ('negotiation', 'NEGOTIATION'),
+        ('confirmed', 'CONFIRMED'),
+    ], string="Governance Pipeline Stage",
+       compute='_compute_vantage_deal_stage',
+       store=True,
+       index=True,
+       group_expand='_read_group_vantage_stages')
+
+    @api.model
+    def _read_group_vantage_stages(self, stages, domain, order):
+        return [key for key, _ in self._fields['vantage_deal_stage'].selection]
+
+    @api.depends('state', 'risk_approval_state', 'negotiation_rounds')
+    def _compute_vantage_deal_stage(self):
+        for order in self:
+            if order.state in ('sale', 'done'):
+                order.vantage_deal_stage = 'confirmed'
+            elif getattr(order, 'negotiation_rounds', 0) > 0 and order.risk_approval_state not in ('approved',):
+                order.vantage_deal_stage = 'negotiation'
+            elif order.risk_approval_state == 'approved':
+                order.vantage_deal_stage = 'approved'
+            elif order.risk_approval_state in ('pending_approval', 'pending_finance', 'pending_manager'):
+                order.vantage_deal_stage = 'pending'
+            else:
+                order.vantage_deal_stage = 'draft'
     partner_customer_tier_id = fields.Many2one(
         'vantage.discount.tier',
         related='partner_id.customer_tier_id',
@@ -282,29 +314,32 @@ class SaleOrder(models.Model):
             self.write({'risk_approval_state': 'pending_finance'})
             self._resolve_approval_activities(_("Manager approval granted. Escalated to Finance."))
             self._schedule_finance_approval_activity()
-            self.message_post(body=_(
+            self.message_post(body=Markup(_(
                 "👔 <strong>Sales Manager Approval Granted</strong> by %s.<br/>"
                 "⚠️ Blended Risk Score (%s) exceeds the Tier-1 threshold (%g). "
                 "Escalated to <strong>Finance Director</strong> for final sign-off."
-            ) % (self.env.user.name, self.blended_risk_score, ceiling))
+            )) % (self.env.user.name, self.blended_risk_score, ceiling))
         else:
             self.write({'risk_approval_state': 'approved'})
             self._resolve_approval_activities(_("Sales Manager approval granted by %s.") % self.env.user.name)
-            self.message_post(body=_("✅ <strong>Commercial Approval Granted</strong> by Sales Manager %s. Deal unlocked for confirmation.") % self.env.user.name)
+            self.message_post(body=Markup(_("✅ <strong>Commercial Approval Granted</strong> by Sales Manager %s. Deal unlocked for confirmation.")) % self.env.user.name)
+        self._notify_vantage_sync('manager_approved')
 
     def action_finance_approve(self):
         """Tier 2: Finance Director Final Approval"""
         self.ensure_one()
         self.write({'risk_approval_state': 'approved'})
         self._resolve_approval_activities(_("Finance Director approval granted by %s.") % self.env.user.name)
-        self.message_post(body=_("🏛️ <strong>Finance Director Approval Granted</strong> by %s. Deal unlocked for confirmation.") % self.env.user.name)
+        self.message_post(body=Markup(_("🏛️ <strong>Finance Director Approval Granted</strong> by %s. Deal unlocked for confirmation.")) % self.env.user.name)
+        self._notify_vantage_sync('finance_approved')
 
     def action_manager_reject(self):
         """Rejects deal at any tier"""
         self.ensure_one()
         self.write({'risk_approval_state': 'rejected'})
         self._resolve_approval_activities(_("Deal rejected by %s.") % self.env.user.name)
-        self.message_post(body=_("❌ <strong>Deal Rejected</strong> by %s due to margin/risk constraints.") % self.env.user.name)
+        self.message_post(body=Markup(_("❌ <strong>Deal Rejected</strong> by %s due to margin/risk constraints.")) % self.env.user.name)
+        self._notify_vantage_sync('deal_rejected')
 
     def action_nudge_rep(self):
         """Automated Rep Escalation for Stalled Quotes"""
@@ -318,7 +353,7 @@ class SaleOrder(models.Model):
                 summary='⚠️ Stalled Deal Follow-Up Required',
                 note=f"Quotation {self.name} has been stalled for {self.days_inactive} days. Please follow up with client {self.partner_id.name} immediately."
             )
-        self.message_post(body=f"⚡ <strong>Rep Nudge Dispatched:</strong> Automated reminder sent to {rep.name} for inactive quote ({self.days_inactive} days stalled).")
+        self.message_post(body=Markup(f"⚡ <strong>Rep Nudge Dispatched:</strong> Automated reminder sent to {rep.name} for inactive quote ({self.days_inactive} days stalled)."))
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -328,17 +363,65 @@ class SaleOrder(models.Model):
                 order.message_subscribe(partner_ids=[order.partner_id.id])
         return orders
 
+    def _notify_vantage_sync(self, event_type='order_updated'):
+        """Broadcast live notification to both portal channel and backend bus."""
+        for order in self:
+            channel = f"vantage_order_{order.id}"
+            payload = {
+                'order_id': order.id,
+                'event': event_type,
+                'state': order.state,
+                'risk_approval_state': order.risk_approval_state,
+                'blended_risk_score': order.blended_risk_score,
+                'round_count': order.negotiation_rounds,
+            }
+            try:
+                self.env['bus.bus']._sendone(channel, 'vantage_sync', payload)
+                self.env['bus.bus']._sendone('broadcast', 'vantage_sync', payload)
+                if order.partner_id:
+                    self.env['bus.bus']._sendone(order.partner_id, 'vantage_sync', payload)
+                self.env['bus.bus']._sendone(order, 'vantage_sync', payload)
+            except Exception:
+                pass
+
     def write(self, vals):
         res = super().write(vals)
         if 'partner_id' in vals:
             for order in self:
                 if order.partner_id:
                     order.message_subscribe(partner_ids=[order.partner_id.id])
+        if any(k in vals for k in ('order_line', 'risk_approval_state', 'negotiation_rounds', 'is_negotiation_locked')):
+            self._notify_vantage_sync('order_updated')
         return res
+
+    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # Portal signing / payment governance
+    # ------------------------------------------------------------------
+    def _is_vantage_approval_blocking(self):
+        """Check if deal requires commercial approval before allowing signature or payment."""
+        self.ensure_one()
+        return bool(self.blended_risk_score > self._vantage_risk_trigger() and self.risk_approval_state != 'approved')
+
+    def _has_to_be_signed(self):
+        """Suppress customer signature while high-risk terms are pending commercial sign-off."""
+        if self._is_vantage_approval_blocking():
+            return False
+        return super()._has_to_be_signed()
+
+    def _has_to_be_paid(self):
+        """Suppress customer payment while high-risk terms are pending commercial sign-off."""
+        if self._is_vantage_approval_blocking():
+            return False
+        return super()._has_to_be_paid()
 
     # ------------------------------------------------------------------
     # Negotiation / circuit breaker
     # ------------------------------------------------------------------
+    def action_open_bargain_pitch(self):
+        """Alias for opening the modal counter-offer wizard directly in backend ERP."""
+        return self.action_open_bargain_wizard()
+
     def action_open_bargain_wizard(self):
         """Open the Deal Negotiation & Bargain Pitch Wizard"""
         self.ensure_one()
@@ -372,7 +455,8 @@ class SaleOrder(models.Model):
         self.ensure_one()
         self.negotiation_rounds = 0
         self.is_negotiation_locked = False
-        self.message_post(body=_("🔓 <strong>Negotiation Reset:</strong> Circuit breaker reset by manager. New negotiation rounds permitted."))
+        self.message_post(body=Markup(_("🔓 <strong>Negotiation Reset:</strong> Circuit breaker reset by manager. New negotiation rounds permitted.")))
+        self._notify_vantage_sync('negotiation_reset')
 
     def _vantage_route_approval(self):
         """Send the deal back through the approval workflow after terms changed."""
@@ -407,11 +491,49 @@ class SaleOrder(models.Model):
             msg = f"Customer proposed order-wide counter-discount of {counter_discount}%. Notes: {notes}"
 
         self.last_counter_offer = msg
-        self.message_post(body=f"🤝 <strong>Portal Counter-Offer (Round {self.negotiation_rounds}/{self.max_negotiation_rounds})</strong>: {msg}")
+        self.message_post(body=Markup(f"🤝 <strong>Portal Counter-Offer (Round {self.negotiation_rounds}/{self.max_negotiation_rounds})</strong>: {msg}"))
 
         # Recalculate risk & re-enter the approval workflow at the right tier
         self._compute_vantage_risk()
         self._vantage_route_approval()
+        self._notify_vantage_sync('counter_offer')
+
+    def action_simulate_customer_counter(self):
+        """Simulates an incoming customer counter-offer directly inside the admin view."""
+        for order in self:
+            if order.negotiation_rounds >= order.max_negotiation_rounds:
+                raise UserError(_("Circuit Breaker Active: Customer has exhausted the maximum %s negotiation rounds.") % order.max_negotiation_rounds)
+
+            simulated_discount = 8.0
+            simulated_note = "Committing to immediate upfront payment for 8% volume concession."
+
+            # 1. Advance the circuit breaker round counter
+            order.negotiation_rounds += 1
+
+            # 2. Update line discounts
+            for line in order.order_line:
+                if not line.display_type:
+                    line.discount = simulated_discount
+
+            # 3. Log the simulated customer submission to Chatter
+            order.message_post(
+                body=Markup(
+                    f"<b>[Customer Portal Counter-Offer Received]</b><br/>"
+                    f"• Proposed Discount: <b>{simulated_discount}%</b><br/>"
+                    f"• Client Note: <i>\"{simulated_note}\"</i><br/>"
+                    f"• Negotiation Round: <b>{order.negotiation_rounds} of {order.max_negotiation_rounds}</b>"
+                ),
+                subtype_xmlid="mail.mt_comment",
+            )
+
+            # 4. Recalculate risk & update routing and pipeline stage
+            order._compute_vantage_risk()
+            order._vantage_route_approval()
+            if hasattr(order, '_compute_vantage_deal_stage'):
+                order._compute_vantage_deal_stage()
+            order._notify_vantage_sync('counter_offer')
+
+        return True
 
 
 class SaleOrderLine(models.Model):
