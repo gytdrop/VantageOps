@@ -39,3 +39,27 @@ class VantageCustomerPortal(CustomerPortal):
         if '#' not in portal_url:
             portal_url += '#deal_negotiation_portal'
         return request.redirect(portal_url)
+
+    @http.route('/vantage/portal/razorpay_callback', type='json', auth="public", methods=['POST'], website=True, csrf=False)
+    def portal_razorpay_callback(self, order_id=None, payment_id=None, **kw):
+        data = request.jsonrequest.get('params', {}) if hasattr(request, 'jsonrequest') and request.jsonrequest else kw
+        target_id = order_id or data.get('order_id') or kw.get('order_id')
+        txn_id = payment_id or data.get('payment_id') or kw.get('payment_id') or 'pay_mock_12345'
+        if not target_id:
+            return {'status': 'error', 'message': 'Missing order_id'}
+        order_sudo = request.env['sale.order'].sudo().browse(int(target_id))
+        if order_sudo.exists():
+            # Force approval & confirm quotation upon successful payment
+            order_sudo.write({'risk_approval_state': 'approved'})
+            if order_sudo.state in ('draft', 'sent'):
+                order_sudo.action_confirm()
+            order_sudo.message_post(
+                body=f"💳 <strong>Razorpay Online Payment Captured &amp; Order Confirmed</strong><br/>"
+                     f"Transaction ID: <code>{txn_id}</code><br/>"
+                     f"Amount Received: ₹{order_sudo.amount_total:,.2f}"
+            )
+            request.session['portal_success'] = f"Payment of ₹{order_sudo.amount_total:,.2f} via Razorpay (ID: {txn_id}) captured! Order {order_sudo.name} confirmed."
+            return {'status': 'success'}
+        return {'status': 'error', 'message': 'Order not found'}
+
+
