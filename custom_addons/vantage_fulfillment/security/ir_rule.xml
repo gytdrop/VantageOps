@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="0">
-        <!-- Allow cross-company warehouse visibility for autonomous multi-depot fulfillment -->
+        <!-- Allow cross-company warehouse and location visibility for autonomous multi-depot fulfillment -->
         <record id="stock.stock_warehouse_comp_rule" model="ir.rule">
+            <field name="perm_read" eval="False"/>
+        </record>
+        <record id="stock.stock_location_comp_rule" model="ir.rule">
             <field name="perm_read" eval="False"/>
         </record>
     </data>

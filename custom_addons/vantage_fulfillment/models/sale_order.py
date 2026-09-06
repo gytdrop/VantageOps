@@ -129,10 +129,12 @@ class SaleOrder(models.Model):
 
     def _vantage_free_qty(self, product, warehouse):
         """Free (unreserved) stock of a product at a specific warehouse."""
-        location = warehouse.lot_stock_id if warehouse else False
-        if not location or not product:
+        if not warehouse or not product:
             return 0.0
-        return product.with_context(location=location.id).free_qty
+        location = warehouse.sudo().lot_stock_id
+        if not location:
+            return 0.0
+        return product.sudo().with_context(location=location.id).free_qty
 
     def _vantage_build_fulfillment_plan(self, lines=None):
         """Greedily spread demand across every depot that can contribute.
@@ -375,7 +377,8 @@ class SaleOrder(models.Model):
 
     def action_auto_split_warehouses(self):
         """Alias for action_split_fulfillments."""
-        return self.action_split_fulfillments()
+        self.action_split_fulfillments()
+        return False
 
     def action_split_fulfillments(self):
         """Spread stock deficits across every depot that can contribute, cheapest first."""
@@ -439,6 +442,7 @@ class SaleOrder(models.Model):
                 body += (f"<br/>⛔ {shortfall:g} unit(s) exceed network-wide availability and remain on the "
                          f"primary leg for procurement.")
             order.message_post(body=Markup(body), message_type='comment', subtype_xmlid='mail.mt_note')
+        return False
 
     def action_consolidate_backorders(self):
         """Consolidates backorder split child lines back into parent lines when stock arrives"""
@@ -465,6 +469,7 @@ class SaleOrder(models.Model):
                 message_type='comment',
                 subtype_xmlid='mail.mt_note',
             )
+        return False
 
     # ------------------------------------------------------------------
     # Hybrid billing schedule engine
@@ -754,12 +759,12 @@ class SaleOrderLine(models.Model):
 
     @api.depends('product_id', 'order_id.warehouse_id')
     def _compute_free_qty_today(self):
-        warehouses = self.env['stock.warehouse'].search([('vantage_allow_split_source', '=', True)])
+        warehouses = self.env['stock.warehouse'].sudo().search([('vantage_allow_split_source', '=', True)])
         for line in self:
             if line.product_id and line.product_id.type == 'product':
                 wh = line.order_id.warehouse_id
-                stock_loc = wh.lot_stock_id.id if wh else False
-                line.free_qty_today = line.product_id.with_context(location=stock_loc).free_qty if stock_loc else line.product_id.free_qty
+                stock_loc = wh.sudo().lot_stock_id.id if wh else False
+                line.free_qty_today = line.product_id.sudo().with_context(location=stock_loc).free_qty if stock_loc else line.product_id.free_qty
                 network = warehouses | wh
                 line.network_free_qty = sum(
                     line.order_id._vantage_free_qty(line.product_id, w) for w in network

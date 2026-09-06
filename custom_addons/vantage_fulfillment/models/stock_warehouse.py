@@ -41,6 +41,7 @@ class StockWarehouse(models.Model):
 
     def _register_hook(self):
         super()._register_hook()
-        rule = self.env.ref('stock.stock_warehouse_comp_rule', raise_if_not_found=False)
-        if rule and rule.perm_read:
-            rule.sudo().write({'perm_read': False})
+        for xml_id in ('stock.stock_warehouse_comp_rule', 'stock.stock_location_comp_rule'):
+            rule = self.env.ref(xml_id, raise_if_not_found=False)
+            if rule and rule.perm_read:
+                rule.sudo().write({'perm_read': False})
