@@ -39,9 +39,9 @@
     flex: 1 1 auto !important;
     overflow-y: hidden !important;
     overflow-x: auto !important;
-    justify-content: space-between !important;
-    padding: 14px 16px !important;
-    gap: 14px !important;
+    justify-content: flex-start !important;
+    padding: 12px 14px !important;
+    gap: 12px !important;
     box-sizing: border-box !important;
     background-color: #f1f5f9 !important;
 }
@@ -51,8 +51,9 @@
 .o_kanban_renderer.o_kanban_grouped.o_vantage_kanban_pipeline .o_kanban_group,
 .o_kanban_view.o_vantage_full_kanban .o_kanban_group,
 .o_kanban_renderer.o_kanban_grouped:has(.o_vantage_kanban_card) .o_kanban_group {
-    flex: 1 1 0 !important;
-    min-width: 230px !important;
+    flex: 1 1 0px !important;
+    width: 0 !important;
+    min-width: 220px !important;
     max-width: none !important;
     height: 100% !important;
     max-height: 100% !important;

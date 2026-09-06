@@ -46,10 +46,10 @@ function ensureKanbanPipelineStyles() {
             display: flex !important;
             flex-direction: row !important;
             align-items: stretch !important;
-            justify-content: space-between !important;
+            justify-content: flex-start !important;
             width: 100% !important;
-            padding: 14px 16px !important;
-            gap: 14px !important;
+            padding: 12px 14px !important;
+            gap: 12px !important;
             box-sizing: border-box !important;
             background-color: #f1f5f9 !important;
         }
@@ -69,8 +69,9 @@ function ensureKanbanPipelineStyles() {
             border-radius: 10px !important;
             padding: 0 10px 12px 10px !important;
             margin-right: 0 !important;
-            flex: 1 1 0 !important;
-            min-width: 230px !important;
+            flex: 1 1 0px !important;
+            width: 0 !important;
+            min-width: 220px !important;
             max-width: none !important;
             box-sizing: border-box !important;
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
