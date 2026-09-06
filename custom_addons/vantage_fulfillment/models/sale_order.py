@@ -375,6 +375,58 @@ class SaleOrder(models.Model):
             ])
             order.available_upsell_ids = matching_rules
 
+    @api.model
+    def _vantage_delivery_route(self, warehouse):
+        """Return the outbound delivery route for *warehouse*, or False.
+
+        Resolution order:
+          1. Standard ``delivery_route_id`` computed field (present in some Odoo builds).
+          2. Any route on this warehouse whose rules deliver to the customer location.
+          3. Any pull rule on the warehouse's outgoing picking type.
+        Returns False when nothing is found so callers can fall back safely.
+        """
+        if not warehouse:
+            return False
+        route = getattr(warehouse, 'delivery_route_id', False)
+        if route:
+            return route
+        customer_loc = self.env.ref('stock.stock_location_customers', raise_if_not_found=False)
+        if customer_loc and warehouse.route_ids:
+            rule = self.env['stock.rule'].search([
+                ('route_id', 'in', warehouse.route_ids.ids),
+                ('location_dest_id', '=', customer_loc.id),
+                ('action', 'in', ('pull', 'pull_push')),
+            ], limit=1)
+            if rule:
+                return rule.route_id
+        out_type = getattr(warehouse, 'out_type_id', False)
+        if out_type:
+            rule = self.env['stock.rule'].search([
+                ('picking_type_id', '=', out_type.id),
+                ('action', 'in', ('pull', 'pull_push')),
+            ], limit=1)
+            if rule:
+                return rule.route_id
+        return False
+
+    def action_confirm(self):
+        """Pre-stamp delivery routes on split lines before Odoo's procurement runs.
+
+        Split lines created before this fix (or before the module upgrade) may have
+        ``fulfillment_warehouse_id`` set but no ``route_id``.  Without the route,
+        Odoo's procurement engine cannot find a pull rule and raises "No rule has been
+        found to replenish … in Partners/Customers".  We resolve the route here, at
+        confirm time, so the guard covers both newly-split and pre-existing lines.
+        """
+        for order in self:
+            for line in order.order_line.filtered(
+                lambda l: l.fulfillment_warehouse_id and not l.route_id
+            ):
+                route = order._vantage_delivery_route(line.fulfillment_warehouse_id)
+                if route:
+                    line.route_id = route
+        return super().action_confirm()
+
     def action_auto_split_warehouses(self):
         """Alias for action_split_fulfillments."""
         self.action_split_fulfillments()
@@ -402,13 +454,16 @@ class SaleOrder(models.Model):
 
                 # First allocation keeps the original line; every further depot forks a child.
                 first_warehouse, first_qty = line_allocations[0]
+                first_route = order._vantage_delivery_route(first_warehouse)
                 line.write({
                     'product_uom_qty': first_qty,
                     'fulfillment_warehouse_id': first_warehouse.id,
+                    'route_id': first_route.id if first_route else False,
                     'is_split_parent': len(line_allocations) > 1,
                 })
 
                 for warehouse, qty in line_allocations[1:]:
+                    route = order._vantage_delivery_route(warehouse)
                     order.order_line.create({
                         'order_id': order.id,
                         'product_id': line.product_id.id,
@@ -418,6 +473,7 @@ class SaleOrder(models.Model):
                         'is_split_child': True,
                         'split_source_line_id': line.id,
                         'fulfillment_warehouse_id': warehouse.id,
+                        'route_id': route.id if route else False,
                         'name': f"{line.name} (Split Leg - {warehouse.name})",
                     })
                 if len(line_allocations) > 1:
@@ -800,6 +856,9 @@ class SaleOrderLine(models.Model):
         values = super()._prepare_procurement_values(group_id=group_id)
         if self.fulfillment_warehouse_id:
             values['warehouse_id'] = self.fulfillment_warehouse_id
+            route = self.order_id._vantage_delivery_route(self.fulfillment_warehouse_id)
+            if route:
+                values['route_ids'] = route
         return values
 
 
