@@ -28,7 +28,7 @@ custom_addons/
 ![Commercial Kanban Pipeline with 5 Deal Stages and Live Risk Badges](screenshots/Screenshot_20260906_060033.png)
 
 ### 2. `vantage_governance` (Commercial Control)
-* **Configurable Tier Policy**: `vantage.discount.tier` lets administrators define any number of tiers (Bronze, Gold, Platinum, Distributor, Government…), each with its own discount ceiling, manager sign-off cap and negotiation budget.
+* **Configurable Tier Policy**: `vantage.discount.tier` lets administrators define any number of tiers (Bronze, Silver, Gold), each with its own discount ceiling, manager sign-off cap and negotiation budget.
 * **Category-Specific Ceilings**: A Gold account may earn 15% on Hardware but only 8% on thin-margin Services. Resolution walks up the product category tree.
 * **Margin Floor Enforcement**: Prohibits confirmation (`action_confirm`) of quotations breaching the ceiling in force, with configurable trigger and escalation thresholds.
 * **Chatter Escalations**: Automatically dispatches `mail.activity` escalations with contextual metadata directly to finance/sales managers.
