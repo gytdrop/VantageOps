@@ -1,3 +1,5 @@
+from markupsafe import Markup
+
 from odoo import models, fields, api
 
 class VantageUpsellRule(models.Model):
@@ -36,8 +38,12 @@ class VantageUpsellRule(models.Model):
                     'name': f"[Upsell] {self.recommended_product_id.display_name}",
                 })
                 order.message_post(
-                    body=f"✨ <strong>Smart Upsell Applied:</strong> Added {self.recommended_product_id.display_name} "
-                         f"(+${self.margin_contribution:,.2f} profit impact)."
+                    body=Markup(
+                        f"✨ <strong>Smart Upsell Applied:</strong> Added {self.recommended_product_id.display_name} "
+                        f"(+${self.margin_contribution:,.2f} profit impact)."
+                    ),
+                    message_type='comment',
+                    subtype_xmlid='mail.mt_note',
                 )
                 return {
                     'type': 'ir.actions.client',

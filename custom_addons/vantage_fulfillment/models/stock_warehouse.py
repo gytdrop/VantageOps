@@ -38,3 +38,9 @@ class StockWarehouse(models.Model):
             base = warehouse.base_shipping_cost or 25.0
             weight = warehouse.shipping_cost_weight or 1.0
             warehouse.vantage_effective_ship_cost = round(base * weight, 2)
+
+    def _register_hook(self):
+        super()._register_hook()
+        rule = self.env.ref('stock.stock_warehouse_comp_rule', raise_if_not_found=False)
+        if rule and rule.perm_read:
+            rule.sudo().write({'perm_read': False})

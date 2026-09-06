@@ -7,6 +7,7 @@
     'depends': ['vantage_core', 'sale_stock', 'sale_management'],
     'data': [
         'security/ir.model.access.csv',
+        'security/ir_rule.xml',
         'views/res_config_settings_views.xml',
         'views/proration_wizard_views.xml',
         'views/fulfillment_views.xml',

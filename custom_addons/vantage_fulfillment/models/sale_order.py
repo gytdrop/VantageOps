@@ -1,4 +1,5 @@
 from dateutil.relativedelta import relativedelta
+from markupsafe import Markup
 
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
@@ -372,6 +373,10 @@ class SaleOrder(models.Model):
             ])
             order.available_upsell_ids = matching_rules
 
+    def action_auto_split_warehouses(self):
+        """Alias for action_split_fulfillments."""
+        return self.action_split_fulfillments()
+
     def action_split_fulfillments(self):
         """Spread stock deficits across every depot that can contribute, cheapest first."""
         for order in self:
@@ -433,7 +438,7 @@ class SaleOrder(models.Model):
             if shortfall > 0:
                 body += (f"<br/>⛔ {shortfall:g} unit(s) exceed network-wide availability and remain on the "
                          f"primary leg for procurement.")
-            order.message_post(body=body)
+            order.message_post(body=Markup(body), message_type='comment', subtype_xmlid='mail.mt_note')
 
     def action_consolidate_backorders(self):
         """Consolidates backorder split child lines back into parent lines when stock arrives"""
@@ -456,7 +461,9 @@ class SaleOrder(models.Model):
 
             order.secondary_warehouse_id = False
             order.message_post(
-                body=f"📦 <strong>Fulfillment Backorders Consolidated</strong>: {consolidated_count} backorder line(s) merged back into primary warehouse shipment."
+                body=Markup(f"📦 <strong>Fulfillment Backorders Consolidated</strong>: {consolidated_count} backorder line(s) merged back into primary warehouse shipment."),
+                message_type='comment',
+                subtype_xmlid='mail.mt_note',
             )
 
     # ------------------------------------------------------------------
@@ -533,7 +540,7 @@ class SaleOrder(models.Model):
         )
         if prorated_count:
             body += f" {prorated_count} cycle(s) prorated on exact calendar days."
-        self.message_post(body=body)
+        self.message_post(body=Markup(body), message_type='comment', subtype_xmlid='mail.mt_note')
 
     def action_open_proration_wizard(self):
         """Open the mid-cycle seat change proration wizard."""
@@ -782,6 +789,14 @@ class SaleOrderLine(models.Model):
         for line in self:
             cost = line.product_id.standard_price * line.product_uom_qty if line.product_id else 0.0
             line.margin_delta = round(line.price_subtotal - cost, 2)
+
+    def _prepare_procurement_values(self, group_id=False):
+        """Route delivery order creation to the allocated fulfillment depot."""
+        values = super()._prepare_procurement_values(group_id=group_id)
+        if self.fulfillment_warehouse_id:
+            values['warehouse_id'] = self.fulfillment_warehouse_id
+        return values
+
 
 
 class SaleOrderOption(models.Model):

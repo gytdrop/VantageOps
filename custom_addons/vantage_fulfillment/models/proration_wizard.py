@@ -1,4 +1,5 @@
 from dateutil.relativedelta import relativedelta
+from markupsafe import Markup
 
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
@@ -125,13 +126,17 @@ class VantageProrationWizard(models.TransientModel):
         if self.apply_qty_change:
             line.product_uom_qty += self.qty_delta
 
-        self.order_id.message_post(body=_(
-            "📐 <strong>Mid-Cycle Proration Applied</strong> on %(product)s.<br/>"
-            "Effective %(date)s, cycle %(start)s → %(end)s.<br/>"
-            "%(explanation)s<br/>%(reason)s",
-            product=line.product_id.display_name or line.name,
-            date=self.change_date, start=self.period_start, end=self.period_end,
-            explanation=self.proration_explanation,
-            reason=self.reason or '',
-        ))
+        self.order_id.message_post(
+            body=Markup(_(
+                "📐 <strong>Mid-Cycle Proration Applied</strong> on %(product)s.<br/>"
+                "Effective %(date)s, cycle %(start)s → %(end)s.<br/>"
+                "%(explanation)s<br/>%(reason)s",
+                product=line.product_id.display_name or line.name,
+                date=self.change_date, start=self.period_start, end=self.period_end,
+                explanation=self.proration_explanation,
+                reason=self.reason or '',
+            )),
+            message_type='comment',
+            subtype_xmlid='mail.mt_note',
+        )
         return {'type': 'ir.actions.act_window_close'}
