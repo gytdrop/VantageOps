@@ -100,41 +100,6 @@ docker run -d -p 8069:8069 --name vantageops \
 
 ---
 
-## 🎬 1-Minute Judge & Demo Walkthrough (The Golden Path)
-
-Follow this end-to-end scripted sequence to test all 5 core innovations in under 2 minutes:
-
-### Act 1: Executive Cockpit & Live Pipeline Kanban
-1. In the top navigation, click **Sales ▸ VantageOps Pipeline**.
-2. **Observe**: The custom full-width responsive Kanban stretches across the viewport without empty dead space.
-3. Each card displays real-time **Gross Margin %**, **Blended Risk Score** (0–100), and stage badges (`Direct Allocation`, `Multi-Depot Split`, `Pending Approval`).
-
-### Act 2: Customer Portal Live Negotiation & Circuit Breaker
-1. Open any draft quotation (e.g. `SO-0042`) and click the **Customer Preview** smart button.
-2. In the customer portal view, observe the tokenized interactive negotiation interface.
-3. Submit a counter-offer discount (e.g. 18%).
-4. **Observe Real-Time Sync**: The backend chatter instantly updates without page refresh via the Odoo WebBus listener.
-5. Notice the **Circuit Breaker** counter decrements. If the customer pitches beyond the team's allowed budget, the deal locks automatically to protect commercial margins.
-
-### Act 3: Cost-Weighted Multi-Depot Auto-Split
-1. Return to the backend quotation form and select a deal exceeding local inventory (or click **Simulate Customer Pitch**).
-2. Click the **"Auto-Split & Optimize"** header action.
-3. **Observe**: The algorithm scans regional warehouses (San Francisco, Chicago), calculates landed freight costs (`base_shipping_cost × shipping_cost_weight`), and greedily allocates inventory cheapest-depot-first.
-4. If a shortfall exists, it is explicitly reported rather than silently dropped.
-
-### Act 4: Commercial Margin Governance & Approval Lock
-1. Increase a quotation line discount past the customer's tier ceiling (e.g. 25% on a Silver account).
-2. Click **Confirm**.
-3. **Observe**: The confirmation is blocked by the governance engine. The state machine shifts to **Pending Approval**, and high-priority `mail.activity` notifications are routed to the Sales Manager / Finance Director.
-
-### Act 5: Cadence-Aware Billing & Mid-Cycle Proration
-1. In the quotation's **Recurring Billing** tab, observe separate one-time hardware vs monthly SaaS milestones.
-2. Click **"Proration Wizard"** to simulate adding licenses mid-month—the system calculates exact-day calendar fractions (`relativedelta`) without rounding errors.
-
----
-
----
-
 ## ⚙️ Configuration Surface
 
 Every commercial threshold is administrator-editable — nothing is hardcoded.
