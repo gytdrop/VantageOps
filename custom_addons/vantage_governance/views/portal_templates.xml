@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Task 2A: Clean Sidebar Status (Removes redundant negotiate button) -->
+    <!-- Task 2A: Clean Sidebar Status & Pay Now Action Button -->
     <template id="sale_order_portal_template_inherit_vantage" inherit_id="sale.sale_order_portal_template">
         <xpath expr="//div[@id='sale_order_sidebar_button']" position="inside">
             <t t-if="sale_order.risk_approval_state in ('pending_manager', 'pending_approval', 'pending_finance')">
@@ -8,10 +8,17 @@
                     <i class="fa fa-lock me-1"/> In Governance Review
                 </div>
             </t>
+            <t t-elif="sale_order.state in ('draft', 'sent')">
+                <a role="button" id="o_vantage_portal_paynow" class="btn btn-primary d-block fw-bold shadow-sm" 
+                   data-bs-toggle="modal" data-bs-target="#vantage_razorpay_modal" href="#" 
+                   style="background-color: #0c2340; border-color: #0c2340;">
+                    <i class="fa fa-bolt me-1 text-warning"/> Pay Now
+                </a>
+            </t>
         </xpath>
     </template>
 
-    <!-- Task 2B: Brand Purple Deal Negotiation Portal Card -->
+    <!-- Task 2B: Brand Purple Deal Negotiation Portal Card & Interactive Razorpay Modal -->
     <template id="portal_order_page_inherit_vantage" inherit_id="sale.sale_order_portal_content">
         <xpath expr="//div[@id='introduction']" position="before">
             <div id="deal_negotiation_portal" class="card border rounded-3 mb-4 shadow-sm" 
@@ -137,53 +144,106 @@
                 </div>
             </div>
 
-            <!-- Mock Razorpay Payment Checkout Card -->
-            <div id="razorpay_checkout_card" class="card border rounded-3 mb-4 shadow-sm"
-                 style="border-color: #d1d5db !important; overflow: hidden;"
-                 t-if="sale_order.state in ('draft', 'sent', 'sale')">
-                <div class="card-header d-flex justify-content-between align-items-center py-2 px-3"
-                     style="background: linear-gradient(90deg, #0c2340 0%, #1a365d 100%); color: #ffffff;">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fa fa-credit-card fs-6 text-info"/>
-                        <span class="fw-bold" style="letter-spacing: 0.3px;">Instant Payment &amp; Checkout</span>
-                        <span class="badge bg-info text-dark rounded-pill px-2 py-1 small fw-semibold">Razorpay Express</span>
+            <!-- Razorpay Checkout Modal (Visible ONLY when Pay Now is clicked) -->
+            <div role="dialog" class="modal fade" id="vantage_razorpay_modal" tabindex="-1" aria-labelledby="vantageRazorpayModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+                        <!-- Modal Header -->
+                        <div class="modal-header py-3 px-4 text-white" style="background: linear-gradient(135deg, #0c2340 0%, #1a365d 100%);">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="p-1 rounded bg-white text-dark d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                                    <i class="fa fa-credit-card text-primary fs-6"/>
+                                </div>
+                                <div>
+                                    <h5 class="modal-title fw-bold mb-0" id="vantageRazorpayModalLabel" style="font-size: 1.1rem;">Razorpay Checkout</h5>
+                                    <small class="text-white-50" style="font-size: 0.75rem;">Secured 256-Bit SSL Gateway</small>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+
+                        <!-- Modal Body -->
+                        <div class="modal-body p-4 bg-light">
+                            <!-- Order Summary Box -->
+                            <div class="bg-white p-3 rounded-3 border mb-3 shadow-xs">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="text-muted small">Order Reference</span>
+                                    <span class="fw-bold text-dark"><t t-esc="sale_order.name"/></span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="text-muted small">Customer</span>
+                                    <span class="fw-semibold text-secondary small"><t t-esc="sale_order.partner_id.name"/></span>
+                                </div>
+                                <hr class="my-2"/>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold text-dark">Amount Payable</span>
+                                    <span class="fs-4 fw-bold text-success">
+                                        ₹<t t-esc="'{0:,.2f}'.format(sale_order.amount_total) if sale_order.amount_total else '0.00'"/>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Payment Options -->
+                            <div class="card border-0 bg-white shadow-xs p-3 rounded-3 mb-3">
+                                <h6 class="fw-bold text-dark mb-2 small text-uppercase" style="letter-spacing: 0.5px;">Select Payment Mode</h6>
+                                <div class="d-flex flex-column gap-2">
+                                    <label class="d-flex align-items-center p-2 rounded border bg-light" style="cursor: pointer;">
+                                        <input type="radio" name="vantage_rzp_mode" value="upi" checked="checked" class="form-check-input me-3"/>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-bold text-dark small"><i class="fa fa-qrcode text-primary me-1"/> UPI (Instant)</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">Google Pay, PhonePe, Paytm, BHIM</div>
+                                        </div>
+                                        <span class="badge bg-success text-white small">Fastest</span>
+                                    </label>
+                                    <label class="d-flex align-items-center p-2 rounded border bg-white" style="cursor: pointer;">
+                                        <input type="radio" name="vantage_rzp_mode" value="card" class="form-check-input me-3"/>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-bold text-dark small"><i class="fa fa-credit-card text-info me-1"/> Cards</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">Visa, MasterCard, RuPay, Corporate Cards</div>
+                                        </div>
+                                    </label>
+                                    <label class="d-flex align-items-center p-2 rounded border bg-white" style="cursor: pointer;">
+                                        <input type="radio" name="vantage_rzp_mode" value="netbanking" class="form-check-input me-3"/>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-bold text-dark small"><i class="fa fa-university text-secondary me-1"/> Net Banking</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">All major Indian banks supported</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info py-2 px-3 small d-flex align-items-center gap-2 mb-0 rounded-2">
+                                <i class="fa fa-shield text-info fs-5"/>
+                                <span style="font-size: 0.78rem;">Live Sandbox Mode Active. Payment will instantly capture and confirm your order in VantageOps.</span>
+                            </div>
+                        </div>
+
+                        <!-- Modal Footer -->
+                        <div class="modal-footer bg-white py-3 px-4 d-flex justify-content-between">
+                            <button type="button" class="btn btn-light btn-sm text-secondary fw-semibold px-3" data-bs-dismiss="modal">Cancel</button>
+                            <button id="rzp_confirm_pay_btn" type="button" class="btn text-white fw-bold px-4 shadow-sm" style="background-color: #0c2340; border-color: #0c2340;">
+                                <i class="fa fa-bolt me-1 text-warning"/> Pay ₹<t t-esc="'{0:,.2f}'.format(sale_order.amount_total) if sale_order.amount_total else '0.00'"/> Now
+                            </button>
+                        </div>
                     </div>
-                    <div>
-                        <span class="badge bg-success rounded-pill px-2 py-1 small fw-semibold">
-                            ● Live Sandbox Mode
-                        </span>
-                    </div>
-                </div>
-                <div class="card-body p-3 bg-white d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div>
-                        <h6 class="mb-1 fw-bold text-dark">Pay via Razorpay Payment Gateway</h6>
-                        <p class="text-secondary small mb-0">
-                            Instant online payment via UPI, Credit/Debit Cards, NetBanking, or Corporate Wallets.
-                        </p>
-                    </div>
-                    <button id="rzp-button1" class="btn btn-primary btn-md px-4 fw-bold shadow-sm rounded-3"
-                            style="background-color: #0c2340; border-color: #0c2340;">
-                        <i class="fa fa-bolt me-1 text-warning"/> Pay Now with Razorpay
-                    </button>
                 </div>
             </div>
 
-            <!-- Razorpay Checkout JS Integration -->
-            <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+            <!-- Razorpay Checkout Client JS Integration -->
             <script type="text/javascript">
                 (function() {
-                    var payBtn = document.getElementById('rzp-button1');
-                    if (!payBtn) return;
+                    function initRazorpayHandler() {
+                        var payBtn = document.getElementById('rzp_confirm_pay_btn');
+                        if (!payBtn) return;
 
-                    var options = {
-                        "key": "rzp_test_mock_key_vantageops",
-                        "amount": Math.round(parseFloat('<t t-esc="sale_order.amount_total"/>') * 100),
-                        "currency": "INR",
-                        "name": "VantageOps Commercial Suite",
-                        "description": "Quotation / Order <t t-esc="sale_order.name"/> Payment",
-                        "image": "/web/static/img/favicon.ico",
-                        "handler": function (response){
-                            alert("✅ Mock Razorpay Payment Successful!\n\nPayment ID: " + (response.razorpay_payment_id || "pay_mock_9988776655") + "\nOrder: <t t-esc="sale_order.name"/>\nAmount: ₹<t t-esc="sale_order.amount_total"/>");
+                        payBtn.onclick = function(e) {
+                            e.preventDefault();
+                            payBtn.disabled = true;
+                            payBtn.innerHTML = '&lt;i class="fa fa-spinner fa-spin me-1"&gt;&lt;/i&gt; Processing Payment...';
+
+                            var mockPaymentId = 'pay_' + Math.random().toString(36).substring(2, 12).toUpperCase();
+
+                            // Call callback endpoint
                             fetch('/vantage/portal/razorpay_callback', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -192,38 +252,43 @@
                                     method: 'call',
                                     params: {
                                         order_id: "<t t-esc="sale_order.id"/>",
-                                        payment_id: response.razorpay_payment_id || "pay_mock_9988776655"
+                                        payment_id: mockPaymentId
                                     }
                                 })
-                            }).then(function() {
+                            }).then(function(response) {
+                                return response.json();
+                            }).then(function(result) {
                                 window.location.reload();
+                            }).catch(function(err) {
+                                // Fallback via HTTP POST form submit if fetch fails
+                                var form = document.createElement('form');
+                                form.method = 'POST';
+                                form.action = '/vantage/portal/razorpay_pay_http';
+                                var inputOrder = document.createElement('input');
+                                inputOrder.type = 'hidden';
+                                inputOrder.name = 'order_id';
+                                inputOrder.value = "<t t-esc="sale_order.id"/>";
+                                form.appendChild(inputOrder);
+                                var inputPay = document.createElement('input');
+                                inputPay.type = 'hidden';
+                                inputPay.name = 'payment_id';
+                                inputPay.value = mockPaymentId;
+                                form.appendChild(inputPay);
+                                document.body.appendChild(form);
+                                form.submit();
                             });
-                        },
-                        "prefill": {
-                            "name": "<t t-esc="sale_order.partner_id.name"/>",
-                            "email": "<t t-esc="sale_order.partner_id.email or 'customer@vantageops.com'"/>",
-                            "contact": "<t t-esc="sale_order.partner_id.phone or '9999999999'"/>"
-                        },
-                        "theme": {
-                            "color": "#714B67"
-                        }
-                    };
+                        };
+                    }
 
-                    payBtn.onclick = function(e){
-                        e.preventDefault();
-                        if (typeof Razorpay !== 'undefined') {
-                            var rzp1 = new Razorpay(options);
-                            rzp1.open();
-                        } else {
-                            // Fallback Mock Modal if script is blocked locally
-                            alert("⚡ Razorpay Gateway Modal Triggered!\n\nOrder: <t t-esc="sale_order.name"/>\nTotal: ₹<t t-esc="sale_order.amount_total"/>\nSimulating instant payment approval...");
-                            options.handler({ razorpay_payment_id: "pay_mock_" + Math.floor(Math.random()*1000000000) });
-                        }
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', initRazorpayHandler);
+                    } else {
+                        initRazorpayHandler();
                     }
                 })();
             </script>
 
-            <!-- Real-Time Auto-Sync Script for Live Customer Portal Updates -->
+            <!-- Real-Time Auto-Sync Script for Live Customer Portal Updates (Pauses when modal open) -->
             <script type="text/javascript">
                 (function() {
                     if (window.location.pathname.indexOf('/my/orders/') !== -1) {
@@ -232,7 +297,7 @@
                         var currentRounds = card.getAttribute('data-rounds');
                         var currentState = card.getAttribute('data-state');
                         setInterval(function() {
-                            if (document.visibilityState === 'visible') {
+                            if (document.visibilityState === 'visible' &amp;&amp; !document.querySelector('.modal.show')) {
                                 fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                                     .then(function(res) { return res.text(); })
                                     .then(function(html) {
@@ -248,7 +313,7 @@
                                         }
                                     }).catch(function() {});
                             }
-                        }, 3000);
+                        }, 4000);
                     }
                 })();
             </script>
@@ -269,3 +334,4 @@
         </xpath>
     </template>
 </odoo>
+
