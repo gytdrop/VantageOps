@@ -423,7 +423,7 @@ class SaleOrder(models.Model):
                 lambda l: l.fulfillment_warehouse_id and not l.route_id
             ):
                 route = order._vantage_delivery_route(line.fulfillment_warehouse_id)
-                if route:
+                if route and (not route.company_id or route.company_id == line.company_id):
                     line.route_id = route
         return super().action_confirm()
 
@@ -458,7 +458,7 @@ class SaleOrder(models.Model):
                 line.write({
                     'product_uom_qty': first_qty,
                     'fulfillment_warehouse_id': first_warehouse.id,
-                    'route_id': first_route.id if first_route else False,
+                    'route_id': first_route.id if first_route and (not first_route.company_id or first_route.company_id == order.company_id) else False,
                     'is_split_parent': len(line_allocations) > 1,
                 })
 
@@ -473,7 +473,7 @@ class SaleOrder(models.Model):
                         'is_split_child': True,
                         'split_source_line_id': line.id,
                         'fulfillment_warehouse_id': warehouse.id,
-                        'route_id': route.id if route else False,
+                        'route_id': route.id if route and (not route.company_id or route.company_id == order.company_id) else False,
                         'name': f"{line.name} (Split Leg - {warehouse.name})",
                     })
                 if len(line_allocations) > 1:
@@ -856,6 +856,7 @@ class SaleOrderLine(models.Model):
         values = super()._prepare_procurement_values(group_id=group_id)
         if self.fulfillment_warehouse_id:
             values['warehouse_id'] = self.fulfillment_warehouse_id
+            values['company_id'] = self.fulfillment_warehouse_id.company_id
             route = self.order_id._vantage_delivery_route(self.fulfillment_warehouse_id)
             if route:
                 values['route_ids'] = route

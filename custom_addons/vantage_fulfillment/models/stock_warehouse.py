@@ -41,7 +41,14 @@ class StockWarehouse(models.Model):
 
     def _register_hook(self):
         super()._register_hook()
-        for xml_id in ('stock.stock_warehouse_comp_rule', 'stock.stock_location_comp_rule'):
+        rules_to_relax = (
+            'stock.stock_warehouse_comp_rule',
+            'stock.stock_location_comp_rule',
+            'stock.product_pulled_flow_comp_rule',
+            'stock.stock_location_route_comp_rule',
+            'stock.stock_picking_type_rule',
+        )
+        for xml_id in rules_to_relax:
             rule = self.env.ref(xml_id, raise_if_not_found=False)
             if rule and rule.perm_read:
                 rule.sudo().write({'perm_read': False})

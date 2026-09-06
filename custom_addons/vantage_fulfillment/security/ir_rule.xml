@@ -8,5 +8,14 @@
         <record id="stock.stock_location_comp_rule" model="ir.rule">
             <field name="perm_read" eval="False"/>
         </record>
+        <record id="stock.product_pulled_flow_comp_rule" model="ir.rule">
+            <field name="perm_read" eval="False"/>
+        </record>
+        <record id="stock.stock_location_route_comp_rule" model="ir.rule">
+            <field name="perm_read" eval="False"/>
+        </record>
+        <record id="stock.stock_picking_type_rule" model="ir.rule">
+            <field name="perm_read" eval="False"/>
+        </record>
     </data>
 </odoo>
