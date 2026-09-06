@@ -54,15 +54,24 @@
 
                 <!-- Body Area -->
                 <div class="card-body p-3 bg-white">
-                    <!-- Session Feedback Alerts -->
-                    <t t-if="request.session.get('portal_success')">
-                        <div class="alert alert-success alert-dismissible fade show mb-3 py-2 px-3 small" role="alert">
-                            <i class="fa fa-check-circle me-2"/> <t t-esc="request.session.pop('portal_success')"/>
+                    <!-- Session / URL Feedback Alerts -->
+                    <t t-set="portal_feedback_success" t-value="request.session.get('portal_success') or (request.httprequest.args.get('portal_success') and 'Counter-offer submitted successfully! VantageOps governance engine re-evaluated deal risk.') or (request.httprequest.args.get('payment_success') and 'Payment processed successfully! Order confirmed.')"/>
+                    <t t-set="portal_feedback_error" t-value="request.session.get('portal_error') or (request.httprequest.args.get('portal_error') and 'Action could not be completed. Please check deal limits or contact support.')"/>
+
+                    <t t-if="portal_feedback_success">
+                        <div class="alert alert-success alert-dismissible fade show mb-3 py-2 px-3 small shadow-sm" role="alert">
+                            <i class="fa fa-check-circle me-2"/> <t t-esc="portal_feedback_success"/>
+                            <t t-if="request.session.get('portal_success')">
+                                <t t-set="_d" t-value="request.session.pop('portal_success', None)"/>
+                            </t>
                         </div>
                     </t>
-                    <t t-if="request.session.get('portal_error')">
-                        <div class="alert alert-danger alert-dismissible fade show mb-3 py-2 px-3 small" role="alert">
-                            <i class="fa fa-exclamation-triangle me-2"/> <t t-esc="request.session.pop('portal_error')"/>
+                    <t t-if="portal_feedback_error">
+                        <div class="alert alert-danger alert-dismissible fade show mb-3 py-2 px-3 small shadow-sm" role="alert">
+                            <i class="fa fa-exclamation-triangle me-2"/> <t t-esc="portal_feedback_error"/>
+                            <t t-if="request.session.get('portal_error')">
+                                <t t-set="_d" t-value="request.session.pop('portal_error', None)"/>
+                            </t>
                         </div>
                     </t>
 

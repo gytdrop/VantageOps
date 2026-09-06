@@ -23,6 +23,7 @@ class VantageCustomerPortal(CustomerPortal):
         if not order_sudo.exists():
             return request.redirect('/my')
 
+        success = True
         try:
             discount_val = float(counter_discount)
             note_val = counter_note or notes or post.get('notes') or ""
@@ -33,12 +34,20 @@ class VantageCustomerPortal(CustomerPortal):
             )
             request.session['portal_success'] = f"Counter-offer of {discount_val}% submitted successfully! VantageOps governance engine re-evaluated deal risk."
         except Exception as e:
+            success = False
             request.session['portal_error'] = str(e)
 
         portal_url = order_sudo.get_portal_url()
+        sep = '&' if '?' in portal_url else '?'
+        if success:
+            portal_url += f"{sep}portal_success=1&discount={discount_val}"
+        else:
+            portal_url += f"{sep}portal_error=1"
+
         if '#' not in portal_url:
             portal_url += '#deal_negotiation_portal'
         return request.redirect(portal_url)
+
 
     @http.route(['/vantage/portal/razorpay_callback'], type='json', auth="public", methods=['POST'], website=True, csrf=False)
     def portal_razorpay_callback(self, order_id=None, payment_id=None, **kw):

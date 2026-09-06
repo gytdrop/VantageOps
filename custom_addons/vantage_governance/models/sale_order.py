@@ -263,17 +263,21 @@ class SaleOrder(models.Model):
         existing = self.env['mail.activity'].search([
             ('res_model', '=', 'sale.order'),
             ('res_id', '=', self.id),
-            ('summary', 'like', 'Manager Approval Required')
+            ('summary', 'like', 'Sales Manager Approval Required')
         ], limit=1)
 
-        if not existing and activity_type:
-            tier_name = self.partner_id.customer_tier_id.name or 'Unclassified'
+        tier_name = self.partner_id.customer_tier_id.name or 'Unclassified'
+        note_text = (f"Quotation {self.name} has a Blended Risk Score of {self.blended_risk_score} "
+                     f"(Customer Tier: {tier_name}, baseline ceiling {self.tier_discount_ceiling:g}%).")
+
+        if existing:
+            existing.write({'note': note_text, 'user_id': manager.id})
+        elif activity_type:
             self.activity_schedule(
                 activity_type_id=activity_type.id,
                 user_id=manager.id,
                 summary='Sales Manager Approval Required',
-                note=(f"Quotation {self.name} has a Blended Risk Score of {self.blended_risk_score} "
-                      f"(Customer Tier: {tier_name}, baseline ceiling {self.tier_discount_ceiling:g}%).")
+                note=note_text
             )
 
     def _schedule_finance_approval_activity(self):
@@ -287,14 +291,18 @@ class SaleOrder(models.Model):
             ('summary', 'like', 'Finance Director Approval Required')
         ], limit=1)
 
-        if not existing and activity_type:
+        note_text = (f"Quotation {self.name} requires final Finance Director authorization. "
+                     f"Blended Risk Score: {self.blended_risk_score} "
+                     f"(above the {self._vantage_manager_risk_ceiling():g} point Manager ceiling).")
+
+        if existing:
+            existing.write({'note': note_text, 'user_id': finance_user.id})
+        elif activity_type:
             self.activity_schedule(
                 activity_type_id=activity_type.id,
                 user_id=finance_user.id,
                 summary='Finance Director Approval Required (Tier-2)',
-                note=(f"Quotation {self.name} requires final Finance Director authorization. "
-                      f"Blended Risk Score: {self.blended_risk_score} "
-                      f"(above the {self._vantage_manager_risk_ceiling():g} point Manager ceiling).")
+                note=note_text
             )
 
     def _resolve_approval_activities(self, feedback_msg):
@@ -491,12 +499,48 @@ class SaleOrder(models.Model):
             msg = f"Customer proposed order-wide counter-discount of {counter_discount}%. Notes: {notes}"
 
         self.last_counter_offer = msg
-        self.message_post(body=Markup(f"🤝 <strong>Portal Counter-Offer (Round {self.negotiation_rounds}/{self.max_negotiation_rounds})</strong>: {msg}"))
+
+        # Ensure sales rep, sales manager and admin are followers and receive chatter notifications
+        notify_partners = self.env['res.partner']
+        if self.user_id and self.user_id.partner_id:
+            notify_partners |= self.user_id.partner_id
+        if self.team_id and self.team_id.user_id and self.team_id.user_id.partner_id:
+            notify_partners |= self.team_id.user_id.partner_id
+        admin_user = self.env.ref('base.user_admin', raise_if_not_found=False)
+        if admin_user and admin_user.partner_id:
+            notify_partners |= admin_user.partner_id
+
+        if notify_partners:
+            self.message_subscribe(partner_ids=notify_partners.ids)
+
+        self.message_post(
+            body=Markup(f"🤝 <strong>Portal Counter-Offer (Round {self.negotiation_rounds}/{self.max_negotiation_rounds})</strong>: {msg}"),
+            partner_ids=notify_partners.ids,
+            message_type='comment',
+            subtype_xmlid='mail.mt_comment'
+        )
 
         # Recalculate risk & re-enter the approval workflow at the right tier
         self._compute_vantage_risk()
         self._vantage_route_approval()
         self._notify_vantage_sync('counter_offer')
+
+        # Push real-time toast notification to backend users
+        for partner in notify_partners:
+            try:
+                self.env['bus.bus']._sendone(
+                    partner,
+                    'simple_notification',
+                    {
+                        'type': 'warning' if self.blended_risk_score > 0 else 'info',
+                        'title': _("🤝 Portal Counter-Offer: %s") % self.name,
+                        'message': _("Customer submitted: %s (Risk: %s)") % (msg, self.blended_risk_score),
+                        'sticky': True,
+                    }
+                )
+            except Exception:
+                pass
+
 
     def action_simulate_customer_counter(self):
         """Simulates an incoming customer counter-offer directly inside the admin view."""
