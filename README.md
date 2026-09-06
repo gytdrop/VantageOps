@@ -4,6 +4,8 @@
 
 VantageOps is an integrated, modular Odoo application suite engineered to protect enterprise gross margins, automate multi-tiered approval workflows, optimize multi-warehouse order fulfillment, and streamline customer portal negotiations.
 
+![VantageOps Command Center — Executive Overview](screenshots/Screenshot_20260906_055500.png)
+
 ---
 
 ## Architecture & Module Suite
@@ -23,6 +25,8 @@ custom_addons/
 * **Hybrid Contract Awareness**: Differentiates between one-off hardware/product sales and recurring service agreements.
 * **Policy Accessor (`vantage.config`)**: Typed resolver for every commercial threshold, backed by `ir.config_parameter` with shipped defaults. No business rule is a Python literal.
 
+![Commercial Kanban Pipeline with 5 Deal Stages and Live Risk Badges](screenshots/Screenshot_20260906_060033.png)
+
 ### 2. `vantage_governance` (Commercial Control)
 * **Configurable Tier Policy**: `vantage.discount.tier` lets administrators define any number of tiers (Bronze, Gold, Platinum, Distributor, Government…), each with its own discount ceiling, manager sign-off cap and negotiation budget.
 * **Category-Specific Ceilings**: A Gold account may earn 15% on Hardware but only 8% on thin-margin Services. Resolution walks up the product category tree.
@@ -31,6 +35,11 @@ custom_addons/
 * **Portal Counter-Offer Interface**: Secure, tokenized customer negotiation interface enabling customers to submit counter-proposals within defined guardrails.
 * **Circuit Breaker Logic**: Bounds counter-offer iterations. The budget resolves **sales team → customer tier → global setting**, and remains overridable per quotation.
 
+![Discount Governance & Blended Risk Scoring](screenshots/Screenshot_20260906_060304.png)
+![Margin Floor Hard Confirmation Block](screenshots/Screenshot_20260906_060349.png)
+![Deal Negotiation & Bargain Pitch Wizard](screenshots/Screenshot_20260906_060524.png)
+![Customer Portal Live Negotiation & Counter-Offer Interface](screenshots/Screenshot_20260906_060936.png)
+
 ### 3. `vantage_fulfillment` (Operational Execution)
 * **N-Way Depot Allocation**: Ranks every eligible warehouse by landed leg cost (`base_shipping_cost × shipping_cost_weight`) and greedily fills them cheapest-first across **any number** of depots — not just a primary plus one secondary. A shared stock ledger prevents two lines of the same product from double-claiming units.
 * **Leg Budget & Shortfall Reporting**: A configurable cap limits how many depots one order may ship from; demand no depot can cover is surfaced as an explicit shortfall rather than silently dropped.
@@ -38,6 +47,10 @@ custom_addons/
 * **Live Margin Delta Upsell**: Calculates and displays margin impacts for optional/accessory products directly within quotation views.
 * **Cadence-Aware Billing**: Each subscription product bills at its own cadence (monthly, quarterly, semi-annual, annual) over a configurable contract length, with cycles placed using real calendar arithmetic (`relativedelta`).
 * **Exact-Day Proration**: Calendar-aligned contracts prorate partial first/last cycles on exact day counts, and a mid-cycle wizard bills seat changes at the precise remaining-day fraction (negative deltas produce credits).
+
+![N-Way Multi-Depot Fulfillment Auto-Split across 3 Warehouses](screenshots/Screenshot_20260906_062503.png)
+![Hybrid Billing Milestone Generation](screenshots/Screenshot_20260906_060437.png)
+![Multi-Warehouse Outbound Operations Queue](screenshots/Screenshot_20260906_064509.png)
 
 ---
 
