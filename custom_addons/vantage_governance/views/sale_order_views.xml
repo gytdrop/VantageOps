@@ -90,23 +90,5 @@
             <field name="view_id" ref="view_vantage_sale_order_kanban_pipeline"/>
             <field name="act_window_id" ref="sale.action_quotations_with_onboarding"/>
         </record>
-
-        <!-- Simulation Button for Single-Screen Demo -->
-        <record id="view_order_form_inherit_vantage_simulation" model="ir.ui.view">
-            <field name="name">sale.order.form.inherit.vantage.simulation</field>
-            <field name="model">sale.order</field>
-            <field name="inherit_id" ref="sale.view_order_form"/>
-            <field name="priority">30</field>
-            <field name="arch" type="xml">
-                <xpath expr="//header" position="inside">
-                    <button name="action_simulate_customer_counter"
-                            type="object"
-                            string="Simulate Customer Pitch"
-                            class="btn-outline-secondary btn-sm"
-                            groups="base.group_user"
-                            help="Simulate an incoming portal negotiation response for live demonstration."/>
-                </xpath>
-            </field>
-        </record>
     </data>
 </odoo>
